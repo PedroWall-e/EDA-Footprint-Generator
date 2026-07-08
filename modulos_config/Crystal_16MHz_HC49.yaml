@@ -1,0 +1,31 @@
+# Cristal 16MHz — HC-49/S
+nome: "Crystal_16MHz_HC49"
+tipo: "crystal_hc49"
+fabricante: "Genérico"
+mpn: "HC49-16MHz"
+datasheet_url: "~"
+
+corpo:
+  largura: 4.7
+  comprimento: 11.0
+  altura: 3.5
+
+pinos:
+  espacamento: 4.88
+  diametro_pad: 1.8
+  diametro_furo: 0.9
+
+kicad:
+  referencia: "Y?"
+  valor: "16MHz"
+  descricao: "Cristal 16MHz HC-49/S — ESR 50 ohm"
+  tags: "crystal xtal oscilador 16mhz hc49"
+  modelo_3d: "Crystal_16MHz_HC49.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+eletrico:
+  tolerancia: "30ppm"

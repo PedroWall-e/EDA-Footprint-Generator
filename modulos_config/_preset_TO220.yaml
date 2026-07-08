@@ -1,0 +1,50 @@
+# =============================================================================
+# Preset: TO-220 — Transistor/regulador de potencia (3 pinos, PTH)
+# Encapsulamento JEDEC TO-220AB
+# Dimensoes conforme IPC-7251 e datasheets tipicos (IRF520, LM7805, etc.)
+# Este preset pode ser usado como transistor (Q?) ou regulador (U?)
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "TO220_3pin"
+padrao: "radial_pth"
+tipo_3d: "to220"
+
+pinos:
+  total: 3
+  pitch: 2.54
+  diametro_pad: 1.8
+  diametro_furo: 1.0
+
+corpo:
+  largura: 10.0           # largura frontal do encapsulamento (mm)
+  altura: 4.5             # altura da face frontal do plastico (mm)
+  formato: "retangulo"
+
+kicad:
+  referencia: "Q?"        # Use Q? para transistor, U? para regulador
+  valor: "TO220"
+  descricao: "TO-220AB 3-pin power package, PTH, pitch 2.54mm"
+  tags: "to-220 to220 power transistor regulator pth through-hole"
+  modelo_3d: "TO220_3pin.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+# Pinagem para transistor NPN/MOSFET (ex: IRF520, TIP41)
+pin_names:
+  1: "B"                  # Base (BJT) ou Gate (MOSFET)
+  2: "C"                  # Coletor (BJT) ou Drain (MOSFET)
+  3: "E"                  # Emissor (BJT) ou Source (MOSFET)
+# Alternativa para regulador de tensao (ex: LM7805, LM317):
+# pin_names:
+#   1: "I"               # Input
+#   2: "GND"             # Ground
+#   3: "O"               # Output
+
+pin_types:
+  1: "input"
+  2: "passive"
+  3: "passive"

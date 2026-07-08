@@ -1,0 +1,50 @@
+# CI NE555 — Timer — SOIC-8
+nome: "NE555_SOIC8"
+tipo: "ci_soic"
+fabricante: "Texas Instruments"
+mpn: "NE555DR"
+datasheet_url: "https://www.ti.com/lit/ds/symlink/ne555.pdf"
+
+pinos:
+  total: 8
+  pitch: 1.27
+  tamanho_pad:
+    largura: 1.5
+    altura: 0.6
+
+corpo:
+  largura: 3.9
+  comprimento: 4.9
+  afastamento_colunas: 5.4
+
+kicad:
+  referencia: "U?"
+  valor: "NE555"
+  descricao: "Timer NE555 SOIC-8 SMD"
+  tags: "ci timer 555 soic8 smd"
+  modelo_3d: "NE555_SOIC8.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "GND"
+  2: "TRIG"
+  3: "OUT"
+  4: "RESET"
+  5: "CTRL"
+  6: "THRES"
+  7: "DISCH"
+  8: "VCC"
+
+pin_types:
+  1: "power_in"
+  2: "input"
+  3: "output"
+  4: "input"
+  5: "input"
+  6: "input"
+  7: "open_collector"
+  8: "power_in"

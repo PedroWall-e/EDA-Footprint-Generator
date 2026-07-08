@@ -1,0 +1,64 @@
+# =============================================================================
+# Preset: DIP-14 — CI logico dual in-line (14 pinos, PTH)
+# Encapsulamento JEDEC MS-001 variacao BA (300mil)
+# Dimensoes conforme IPC-7251 — tipico para 74xx, CD4xxx
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "DIP14"
+tipo: "ci_dip"
+
+pinos:
+  total: 14
+  pitch: 2.54
+  diametro_pad: 1.6
+  diametro_furo: 0.8
+
+corpo:
+  largura: 6.35            # largura do corpo plastico (mm) — 250 mil
+  comprimento: 17.78       # (14/2 - 1) * 2.54 = 6 * 2.54 = 15.24mm + margem
+  afastamento_colunas: 7.62  # distancia entre colunas de pinos — 300 mil
+
+kicad:
+  referencia: "U?"
+  valor: "DIP14"
+  descricao: "DIP-14 generic IC package, PTH, 300mil width, pitch 2.54mm"
+  tags: "dip dip-14 dip14 ci pth through-hole 300mil 74xx logic"
+  modelo_3d: "DIP14.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "Pin_1"
+  2: "Pin_2"
+  3: "Pin_3"
+  4: "Pin_4"
+  5: "Pin_5"
+  6: "Pin_6"
+  7: "GND"
+  8: "Pin_8"
+  9: "Pin_9"
+  10: "Pin_10"
+  11: "Pin_11"
+  12: "Pin_12"
+  13: "Pin_13"
+  14: "VCC"
+
+pin_types:
+  1: "unspecified"
+  2: "unspecified"
+  3: "unspecified"
+  4: "unspecified"
+  5: "unspecified"
+  6: "unspecified"
+  7: "power_in"
+  8: "unspecified"
+  9: "unspecified"
+  10: "unspecified"
+  11: "unspecified"
+  12: "unspecified"
+  13: "unspecified"
+  14: "power_in"

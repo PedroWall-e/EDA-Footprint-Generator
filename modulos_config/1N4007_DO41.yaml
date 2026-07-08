@@ -1,0 +1,49 @@
+# =============================================================================
+# Configuracao: Diodo Retificador 1N4007 — Pacote DO-41 (PTH Axial)
+# Referencia mecanica: JEDEC DO-204AL
+# Dimensoes conforme datasheet Vishay / ON Semiconductor
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "D_1N4007_DO41"
+tipo: "diodo_pth"          # fallback template (usado se modelo_3d_python ausente)
+fabricante: "Vishay"
+mpn: "1N4007-E3/54"
+datasheet_url: "https://www.vishay.com/docs/88503/1n4001.pdf"
+
+# --- Corpo do diodo ---
+corpo:
+  comprimento: 5.2         # comprimento do corpo de vidro/epoxy (mm)
+  diametro: 2.7            # diametro do corpo (mm)
+
+# --- Pinos (leads) ---
+pinos:
+  total: 2                 # Pino 1 = Anodo (+), Pino 2 = Catodo (-)
+  espacamento: 10.16       # distancia entre centros dos pads — 400 mil
+  diametro_pad: 1.8        # diametro externo do pad de cobre (mm)
+  diametro_furo: 0.85      # diametro do furo de solda (drill) em mm
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "D?"
+  valor: "1N4007"
+  descricao: "Rectifier Diode 1A 1000V, DO-41 package, PTH axial"
+  tags: "diode rectifier do-41 do-204al pth through-hole 1N4007"
+  modelo_3d: "D_1N4007_DO41.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.5
+  silkscreen: 0.12
+  fab_line: 0.10
+
+eletrico:
+  tensao_maxima: "1000V"
+  polaridade: true
+
+# =============================================================================
+# Modelo 3D: usa _tmpl_axial_pth (leads com dobra real em arco)
+# Para customizar a cor ou geometria, descomente e edite:
+# modelo_3d_python: |
+#   ...
+# =============================================================================

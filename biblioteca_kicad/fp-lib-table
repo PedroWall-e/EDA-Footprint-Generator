@@ -1,0 +1,12 @@
+(fp_lib_table
+  (lib (name "capacitor_pth")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/capacitor_pth.pretty")(options "")(descr ""))
+  (lib (name "castellated")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/castellated.pretty")(options "")(descr ""))
+  (lib (name "ci_dip")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/ci_dip.pretty")(options "")(descr ""))
+  (lib (name "ci_soic")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/ci_soic.pretty")(options "")(descr ""))
+  (lib (name "conector_pth")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/conector_pth.pretty")(options "")(descr ""))
+  (lib (name "crystal_hc49")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/crystal_hc49.pretty")(options "")(descr ""))
+  (lib (name "diodo_pth")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/diodo_pth.pretty")(options "")(descr ""))
+  (lib (name "led_pth")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/led_pth.pretty")(options "")(descr ""))
+  (lib (name "resistor_pth")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/resistor_pth.pretty")(options "")(descr ""))
+  (lib (name "transistor_to92")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/transistor_to92.pretty")(options "")(descr ""))
+)

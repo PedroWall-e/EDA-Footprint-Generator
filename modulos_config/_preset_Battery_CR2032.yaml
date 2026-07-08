@@ -1,0 +1,77 @@
+# =============================================================================
+# PRESET: Suporte Bateria Coin Cell CR2032 — padrao: custom
+# =============================================================================
+# Suporte para bateria coin cell CR2032 soldada na PCB (SMD).
+# 2 pads grandes: positivo (arco superior) e negativo (duas abas laterais).
+# Exemplo baseado em Keystone 3034 / Linx BAT-HLD-001
+# Dimensões: diâmetro 20mm externo
+#
+# Para usar: duplique este arquivo, renomeie e ajuste as dimensões.
+# =============================================================================
+
+nome: "Battery_CR2032_SMD"
+padrao: custom
+simbolo: "bateria"          # símbolo esquemático: bateria (POS/NEG)
+
+fabricante: "Keystone"
+mpn: "3034"
+datasheet_url: "https://www.keyelco.com/product.cfm/product_id/918"
+
+pads:
+  # Pad negativo — aba esquerda
+  - numero: 1
+    nome: "NEG"
+    tipo_eletrico: "passive"
+    x: -11.5
+    y: 0.0
+    largura: 2.5
+    altura: 5.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  # Pad negativo — aba direita (conectado ao pad 1)
+  - numero: 1
+    nome: "NEG"
+    tipo_eletrico: "passive"
+    x: 11.5
+    y: 0.0
+    largura: 2.5
+    altura: 5.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  # Pad positivo — centro inferior (contato com fundo da bateria)
+  - numero: 2
+    nome: "POS"
+    tipo_eletrico: "passive"
+    x: 0.0
+    y: 4.0
+    largura: 4.0
+    altura: 4.0
+    formato: "circulo"
+    montagem: "smd"
+
+corpo:
+  largura: 24.0
+  comprimento: 24.0
+  formato: cilindro
+
+pin_names:
+  "1": "NEG"
+  "2": "POS"
+
+pin_types:
+  "1": "passive"
+  "2": "passive"
+
+kicad:
+  referencia: "BT?"
+  valor: "CR2032"
+  descricao: "Suporte bateria coin cell CR2032, SMD, Keystone 3034"
+  tags: "bateria battery coin cell cr2032 smd holder"
+  modelo_3d: "Battery_CR2032_SMD.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

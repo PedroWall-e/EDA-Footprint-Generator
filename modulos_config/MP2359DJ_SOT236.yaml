@@ -1,0 +1,53 @@
+# =============================================================================
+# MP2359DJ — Buck Converter 1.2A, SOT-23-6 (SOT-236)
+# Baseado em: _preset_SOT23_5.yaml (ajustado para 6 pinos)
+# Datasheet: https://www.monolithicpower.com/pub/media/document/MP2359_r1.9.pdf
+# =============================================================================
+
+nome: "MP2359DJ_SOT236"
+padrao: "dual_smd"
+fabricante: "MPS"
+mpn: "MP2359DJ-LF-Z"
+datasheet_url: "https://www.monolithicpower.com/pub/media/document/MP2359_r1.9.pdf"
+tipo_3d: "sot23"
+
+corpo:
+  largura: 2.9
+  comprimento: 1.6
+  afastamento_colunas: 2.6
+
+pinos:
+  total: 6
+  pitch: 0.95
+  distribuicao: [3, 3]
+  tamanho_pad:
+    largura: 1.0
+    altura: 0.6
+
+pin_names:
+  1: "BST"
+  2: "GND"
+  3: "FB"
+  4: "EN"
+  5: "IN"
+  6: "SW"
+
+pin_types:
+  1: "passive"
+  2: "power_in"
+  3: "input"
+  4: "input"
+  5: "power_in"
+  6: "output"
+
+kicad:
+  referencia: "U?"
+  valor: "MP2359DJ"
+  descricao: "Buck Converter 1.2A 24V, SOT-23-6, 1.4MHz"
+  tags: "buck converter mp2359 sot23-6 step-down dcdc monolithic-power"
+  modelo_3d: "MP2359DJ_SOT236.step"
+
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10

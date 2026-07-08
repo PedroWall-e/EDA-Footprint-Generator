@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "DataFrontier")(type KiCad)(uri "${KIPRJMOD}/biblioteca_kicad/DataFrontier.kicad_sym")(options "")(descr ""))
+)

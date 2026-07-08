@@ -1,0 +1,31 @@
+# Resistor 470Ω PTH axial — pacote 0.5W
+nome: "R_Axial_470R"
+tipo: "resistor_pth"
+fabricante: "Genérico"
+mpn: "~"
+datasheet_url: "~"
+
+corpo:
+  comprimento: 6.0
+  diametro: 2.5
+
+pinos:
+  espacamento: 10.16
+  diametro_pad: 1.8
+  diametro_furo: 0.8
+
+kicad:
+  referencia: "R?"
+  valor: "470R"
+  descricao: "Resistor 470R 0.5W PTH axial"
+  tags: "resistor pth axial 470r"
+  modelo_3d: "R_Axial_470R.step"
+
+margens:
+  courtyard: 0.5
+  silkscreen: 0.12
+  fab_line: 0.10
+
+eletrico:
+  tolerancia: "5%"
+  potencia: "0.25W"

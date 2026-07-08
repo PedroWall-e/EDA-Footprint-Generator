@@ -1,0 +1,152 @@
+# =============================================================================
+# _preset_TQFP44.yaml — Preset: TQFP-44 10x10 mm
+#
+# Encapsulamento TQFP (Thin Quad Flat Package) para CIs de medio porte como
+# microcontroladores (ATmega328P-AU, ATmega32A), FPGAs pequenas e ASICs.
+#
+# Dimensoes baseadas no datasheet JEDEC MS-026 / TQFP-44:
+#   - Corpo: 10.0 x 10.0 mm
+#   - Pad: 1.2 x 0.4 mm (largura perpendicular a borda x altura paralela)
+#   - Pitch: 0.8 mm
+#   - Afastamento: 12.0 mm (centro-centro entre lados opostos)
+#   - 44 pinos: 11 por lado
+#
+# Numeracao horaria a partir do canto superior-esquerdo:
+#   Esquerdo: pinos 1-11  (cima para baixo)
+#   Base:     pinos 12-22 (esquerda para direita)
+#   Direito:  pinos 23-33 (baixo para cima)
+#   Topo:     pinos 34-44 (direita para esquerda)
+#
+# Usa o motor universal (padrao: quad_smd).
+# =============================================================================
+
+nome: "TQFP44"
+padrao: "quad_smd"
+tipo_3d: "tqfp"
+
+# --- Corpo ---
+corpo:
+  largura: 10.0              # mm — dimensao X do corpo
+  altura: 10.0               # mm — dimensao Y do corpo
+
+# --- Pinos ---
+pinos:
+  total: 44
+  pitch: 0.8                  # mm — espacamento entre pinos adjacentes
+  tamanho_pad:
+    largura: 1.2              # mm — extensao perpendicular a borda
+    altura: 0.4               # mm — extensao paralela a borda
+  lados:
+    esquerdo: 11              # pinos 1-11
+    base: 11                  # pinos 12-22
+    direito: 11               # pinos 23-33
+    topo: 11                  # pinos 34-44
+  afastamento: 12.0           # mm — centro-centro entre lados opostos
+
+# --- Nomes dos pinos (generico — ajustar conforme o CI) ---
+pin_names:
+  1: "1"
+  2: "2"
+  3: "3"
+  4: "4"
+  5: "5"
+  6: "6"
+  7: "7"
+  8: "8"
+  9: "9"
+  10: "10"
+  11: "11"
+  12: "12"
+  13: "13"
+  14: "14"
+  15: "15"
+  16: "16"
+  17: "17"
+  18: "18"
+  19: "19"
+  20: "20"
+  21: "21"
+  22: "22"
+  23: "23"
+  24: "24"
+  25: "25"
+  26: "26"
+  27: "27"
+  28: "28"
+  29: "29"
+  30: "30"
+  31: "31"
+  32: "32"
+  33: "33"
+  34: "34"
+  35: "35"
+  36: "36"
+  37: "37"
+  38: "38"
+  39: "39"
+  40: "40"
+  41: "41"
+  42: "42"
+  43: "43"
+  44: "44"
+
+# --- Tipos eletricos dos pinos (generico) ---
+pin_types:
+  1: "unspecified"
+  2: "unspecified"
+  3: "unspecified"
+  4: "unspecified"
+  5: "unspecified"
+  6: "unspecified"
+  7: "unspecified"
+  8: "unspecified"
+  9: "unspecified"
+  10: "unspecified"
+  11: "unspecified"
+  12: "unspecified"
+  13: "unspecified"
+  14: "unspecified"
+  15: "unspecified"
+  16: "unspecified"
+  17: "unspecified"
+  18: "unspecified"
+  19: "unspecified"
+  20: "unspecified"
+  21: "unspecified"
+  22: "unspecified"
+  23: "unspecified"
+  24: "unspecified"
+  25: "unspecified"
+  26: "unspecified"
+  27: "unspecified"
+  28: "unspecified"
+  29: "unspecified"
+  30: "unspecified"
+  31: "unspecified"
+  32: "unspecified"
+  33: "unspecified"
+  34: "unspecified"
+  35: "unspecified"
+  36: "unspecified"
+  37: "unspecified"
+  38: "unspecified"
+  39: "unspecified"
+  40: "unspecified"
+  41: "unspecified"
+  42: "unspecified"
+  43: "unspecified"
+  44: "unspecified"
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "TQFP44"
+  descricao: "TQFP-44 10x10mm, CI SMD thin quad flat package, JEDEC MS-026"
+  tags: "tqfp tqfp44 10x10 smd ci quad atmega328 microcontrolador"
+  modelo_3d: "TQFP44.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25             # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12            # espessura da linha de silkscreen
+  fab_line: 0.10              # espessura da linha de fabricacao

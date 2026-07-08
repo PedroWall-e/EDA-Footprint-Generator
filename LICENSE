@@ -1,0 +1,36 @@
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+Copyright (c) 2026 Data Frontier
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+===========================================================================
+
+NOTA SOBRE LICENCIAMENTO
+========================
+
+Este projeto é distribuído sob a GNU GPL v3 porque utiliza componentes
+GPL v3, incluindo:
+
+  - KicadModTree (GPL v3+) — Thomas Pointhuber
+  - kicad-footprint-generator (GPL v3+) — Thomas Pointhuber  
+  - kicad-library-utils (GPL v3) — KiCad Project
+  - PyQt5 (GPL v3) — Riverbank Computing Limited
+
+A GPL v3 garante que este software e todas as suas modificações
+permaneçam livres e de código aberto.
+
+Para detalhes sobre componentes de terceiros, consulte o arquivo NOTICE.
+Para o texto completo da GPL v3: https://www.gnu.org/licenses/gpl-3.0.txt

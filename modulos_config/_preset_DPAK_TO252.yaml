@@ -1,0 +1,53 @@
+# =============================================================================
+# Preset: DPAK (TO-252) — Transistor de potencia SMD
+# Encapsulamento JEDEC TO-252AA (DPAK)
+# Dimensoes conforme IPC-7351B e datasheets tipicos (IRFR024N, IRLR2905)
+# Pad 3 = tab de dissipacao termica (pad grande)
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "DPAK_TO252"
+padrao: "dual_smd"
+simbolo: "mosfet_n"         # símbolo esquemático: MOSFET canal N (G/S/D-tab)
+tipo_3d: "dpak"
+
+pinos:
+  total: 3
+  distribuicao: [2, 1]    # 2 pads pequenos (frente) + 1 tab grande (traseira)
+  pitch: 2.28             # pitch entre os 2 pads pequenos
+  tamanho_pad:
+    largura: 1.0          # largura dos pads pequenos (mm)
+    altura: 1.2           # altura dos pads pequenos (mm)
+
+corpo:
+  largura: 6.5            # largura total do corpo (mm)
+  comprimento: 6.1        # comprimento total do corpo (mm)
+
+# Override para o tab de dissipacao termica (pad 3)
+pinos_absolutos:
+  3:
+    pad:
+      largura: 5.4        # largura do tab (mm)
+      altura: 6.0         # altura do tab (mm)
+
+kicad:
+  referencia: "Q?"
+  valor: "DPAK"
+  descricao: "DPAK (TO-252) SMD power package, 2 signal pads + 1 thermal tab"
+  tags: "dpak to-252 to252 smd power transistor mosfet thermal-tab"
+  modelo_3d: "DPAK_TO252.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "G"                  # Gate
+  2: "S"                  # Source
+  3: "D"                  # Drain (tab)
+
+pin_types:
+  1: "input"
+  2: "passive"
+  3: "passive"

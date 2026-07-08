@@ -1,0 +1,80 @@
+# =============================================================================
+# PESD2CAN — TVS Diode ESD Protection for CAN Bus, SOT-23
+# MODO CUSTOM: posicoes absolutas de cada pad
+# Datasheet: https://www.nexperia.com/products/esd-protection/PESD2CAN
+#
+# Dimensoes SOT-23 (TO-236AB) conforme IPC-7351B:
+#   Corpo: 2.9 x 1.3 mm
+#   Pin 1 (CAN_H): esquerda-frente
+#   Pin 2 (CAN_L): direita-frente
+#   Pin 3 (GND):   centro-traseira
+# =============================================================================
+
+nome: "PESD2CAN_SOT23"
+padrao: "custom"
+fabricante: "Nexperia"
+mpn: "PESD2CAN"
+datasheet_url: "https://www.nexperia.com/products/esd-protection/PESD2CAN"
+simbolo: "custom"
+tipo_3d: "sot23"
+
+pads:
+  - numero: 1
+    nome: "CAN_H"
+    tipo_eletrico: "passive"
+    x: -0.95
+    y: 1.1
+    largura: 0.6
+    altura: 0.7
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 2
+    nome: "CAN_L"
+    tipo_eletrico: "passive"
+    x: 0.95
+    y: 1.1
+    largura: 0.6
+    altura: 0.7
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 3
+    nome: "GND"
+    tipo_eletrico: "power_in"
+    x: 0.0
+    y: -1.1
+    largura: 0.6
+    altura: 0.7
+    formato: "retangulo"
+    montagem: "smd"
+
+corpo:
+  largura: 2.9
+  comprimento: 1.3
+  formato: retangulo
+
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "CAN_H"
+  2: "CAN_L"
+  3: "GND"
+
+pin_types:
+  1: "passive"
+  2: "passive"
+  3: "power_in"
+
+kicad:
+  referencia: "D?"
+  valor: "PESD2CAN"
+  descricao: "TVS diode dual ESD protection for CAN bus, SOT-23, 24V standoff"
+  tags: "tvs esd can canbus pesd2can sot23 protection nexperia"
+  modelo_3d: "PESD2CAN_SOT23.step"
+
+eletrico:
+  tensao_maxima: "24V"

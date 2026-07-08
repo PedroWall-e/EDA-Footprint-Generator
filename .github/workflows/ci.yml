@@ -1,0 +1,70 @@
+name: CI — Testes Automatizados
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.11', '3.12']
+      fail-fast: false
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Instalar dependências base
+      run: |
+        python -m pip install --upgrade pip
+        pip install PyQt5 PyYAML matplotlib numpy
+
+    - name: Configurar KicadModTree
+      run: |
+        echo "${{ github.workspace }}/KicadModTree_dev" > kicadmodtree.pth
+        python -c "import site; print(site.getsitepackages()[0])" > site_dir.txt
+      shell: bash
+
+    - name: Copiar .pth para site-packages (Linux)
+      if: runner.os != 'Windows'
+      run: |
+        SITE_DIR=$(python -c "import site; print(site.getsitepackages()[0])")
+        cp kicadmodtree.pth "$SITE_DIR/"
+
+    - name: Copiar .pth para site-packages (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        $SITE_DIR = python -c "import site; print(site.getsitepackages()[0])"
+        Copy-Item kicadmodtree.pth "$SITE_DIR\"
+      shell: pwsh
+
+    - name: Verificar imports
+      run: |
+        python -c "import yaml; print('PyYAML OK')"
+        python -c "import matplotlib; print('matplotlib OK')"
+        python -c "import numpy; print('numpy OK')"
+
+    - name: Rodar testes
+      run: python tests/teste_v2.py
+      env:
+        MPLBACKEND: Agg
+        PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/core:${{ github.workspace }}/gui
+
+    - name: Verificar arquivos de documentação
+      run: |
+        python -c "import os; assert os.path.exists('LICENSE'), 'LICENSE missing'"
+        python -c "import os; assert os.path.exists('NOTICE'), 'NOTICE missing'"
+        python -c "import os; assert os.path.exists('CHANGELOG.md'), 'CHANGELOG missing'"
+        python -c "import os; assert os.path.exists('README.md'), 'README missing'"

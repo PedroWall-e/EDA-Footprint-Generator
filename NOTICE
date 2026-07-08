@@ -1,0 +1,87 @@
+NOTICE — Atribuições de Terceiros
+===================================
+
+Plataforma CAM-CAD Data Frontier
+Copyright (c) 2026 Data Frontier
+
+Este software inclui ou depende dos seguintes componentes de terceiros:
+
+===========================================================================
+BIBLIOTECAS BUNDLED (incluídas no repositório)
+===========================================================================
+
+1. CadQuery
+   Licença: Apache License 2.0
+   Copyright: CadQuery Development Team (Dave Cowden)
+   Fonte: https://github.com/CadQuery/cadquery
+   Caminho: libs/cadquery/
+
+2. CQ-Editor
+   Licença: Apache License 2.0
+   Copyright: CadQuery Developers
+   Fonte: https://github.com/CadQuery/CQ-editor
+   Caminho: libs/CQ-editor/
+
+3. KicadModTree / kicad-footprint-generator
+   Licença: GNU General Public License v3.0 ou posterior
+   Copyright: (c) 2016 Thomas Pointhuber <thomas.pointhuber@gmx.at>
+   Fonte: https://github.com/pointhi/kicad-footprint-generator
+   Caminho: libs/kicad-footprint-generator/, KicadModTree_dev/
+
+4. kicad-library-utils
+   Licença: GNU General Public License v3.0
+   Copyright: KiCad Project Contributors
+   Fonte: https://gitlab.com/kicad/libraries/kicad-library-utils
+   Caminho: libs/kicad-library-utils/
+
+===========================================================================
+DEPENDÊNCIAS PIP (instaladas no ambiente virtual)
+===========================================================================
+
+5. PyQt5
+   Licença: GNU General Public License v3.0 (ou licença comercial)
+   Copyright: Riverbank Computing Limited
+   Fonte: https://www.riverbankcomputing.com/software/pyqt/
+
+6. PyYAML
+   Licença: MIT License
+   Copyright: Kirill Simonov
+   Fonte: https://pyyaml.org/
+
+7. matplotlib
+   Licença: PSF License (BSD-compatível)
+   Copyright: Matplotlib Development Team
+   Fonte: https://matplotlib.org/
+
+8. NumPy
+   Licença: BSD 3-Clause License
+   Copyright: NumPy Developers
+   Fonte: https://numpy.org/
+
+9. OCP (OpenCASCADE Python bindings)
+   Licença: Apache License 2.0
+   Copyright: CadQuery Team
+   Fonte: https://github.com/CadQuery/OCP
+
+10. Pillow (opcional — geração de ícone)
+    Licença: MIT-CMU License (HPND)
+    Copyright: Jeffrey A. Clark (Alex) e contribuidores
+    Fonte: https://python-pillow.org/
+
+===========================================================================
+PADRÕES E NORMAS REFERENCIADOS
+===========================================================================
+
+- IPC-7351B: Land Pattern dimensions (referência para validação)
+  IPC — Association Connecting Electronics Industries
+  Nota: Apenas valores de referência são usados; nenhum conteúdo
+  proprietário da IPC é reproduzido neste software.
+
+- KiCad File Formats (.kicad_mod, .kicad_sym)
+  Copyright: KiCad Project (GPL v3)
+  Os formatos de arquivo são abertos e documentados publicamente.
+
+===========================================================================
+
+Para o texto completo de cada licença, consulte os arquivos LICENSE
+nos respectivos diretórios das bibliotecas bundled.

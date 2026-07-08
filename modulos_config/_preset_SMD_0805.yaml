@@ -1,0 +1,52 @@
+# =============================================================================
+# _preset_SMD_0805.yaml — Preset para Chip Resistor/Capacitor 0805 (2012 Metric)
+#
+# Pacote: 0805 Imperial / 2012 Metric
+# Padrao: dual_smd (motor universal — 2 pads SMD simetricos)
+# Dimensoes baseadas em IPC-7351B (densidade nominal "N")
+# Aplicacao: resistores, capacitores, indutores chip 0805
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "SMD_0805"
+padrao: "dual_smd"
+simbolo: "resistor"         # símbolo esquemático: resistor passivo genérico
+tipo_3d: "smd_chip"
+
+# --- Corpo do componente ---
+corpo:
+  largura: 2.0               # 2.0mm (dimensao ao longo do eixo dos pads)
+  comprimento: 1.25           # 1.25mm (dimensao perpendicular)
+  formato: "retangulo"
+
+# --- Pinos / Pads ---
+pinos:
+  total: 2
+  distribuicao: [1, 1]        # 1 pad de cada lado
+  tamanho_pad:
+    largura: 1.0              # extensao do pad no eixo X (mm)
+    altura: 1.1               # extensao do pad no eixo Y (mm)
+  afastamento_colunas: 2.0    # distancia centro-a-centro entre pads (mm)
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "R?"
+  valor: "0805"
+  descricao: "Chip Resistor/Capacitor 0805 (2012 Metric), SMD"
+  tags: "smd 0805 2012 chip resistor capacitor"
+  modelo_3d: "SMD_0805.step"
+
+# --- Tolerancias e margens (IPC-7351B) ---
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10
+
+# --- Nomes e tipos dos pinos ---
+pin_names:
+  1: "1"
+  2: "2"
+
+pin_types:
+  1: "passive"
+  2: "passive"

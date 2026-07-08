@@ -1,0 +1,43 @@
+# =============================================================================
+# Preset: TO-247 — Transistor de alta potencia (3 pinos, PTH)
+# Encapsulamento JEDEC TO-247AC
+# Dimensoes conforme IPC-7251 e datasheets tipicos (IRFP250N, 2SC5200)
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "TO247_3pin"
+padrao: "radial_pth"
+tipo_3d: "to220"
+
+pinos:
+  total: 3
+  pitch: 5.45
+  diametro_pad: 2.5
+  diametro_furo: 1.5
+
+corpo:
+  largura: 15.9           # largura frontal do encapsulamento (mm)
+  altura: 5.0             # altura da face frontal do plastico (mm)
+  formato: "retangulo"
+
+kicad:
+  referencia: "Q?"
+  valor: "TO247"
+  descricao: "TO-247AC 3-pin high-power package, PTH, pitch 5.45mm"
+  tags: "to-247 to247 high-power transistor mosfet igbt pth through-hole"
+  modelo_3d: "TO247_3pin.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "B"                  # Base (BJT) ou Gate (MOSFET/IGBT)
+  2: "C"                  # Coletor (BJT) ou Drain (MOSFET) ou Coletor (IGBT)
+  3: "E"                  # Emissor (BJT) ou Source (MOSFET) ou Emissor (IGBT)
+
+pin_types:
+  1: "input"
+  2: "passive"
+  3: "passive"

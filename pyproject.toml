@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "cam-cad-data-frontier"
+version = "3.0.0"
+description = "Plataforma CAM-CAD para geração de footprints, símbolos e modelos 3D a partir de YAML"
+authors = [{name = "Data Frontier"}]
+license = {text = "GPL-3.0-or-later"}
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["kicad", "footprint", "pcb", "eda", "cad", "yaml"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "PyQt5>=5.15",
+    "PyYAML>=6.0",
+    "matplotlib>=3.7",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+3d = ["cadquery", "ocp>=7.7.0"]
+dev = ["pytest", "pyinstaller"]
+
+[project.urls]
+Homepage = "https://github.com/DataFrontier/cam-cad-data-frontier"

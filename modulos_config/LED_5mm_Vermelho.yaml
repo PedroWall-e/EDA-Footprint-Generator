@@ -1,0 +1,31 @@
+# LED PTH 5mm Vermelho
+nome: "LED_5mm_Vermelho"
+tipo: "led_pth"
+fabricante: "Genérico"
+mpn: "LED-5MM-RED"
+datasheet_url: "~"
+
+corpo:
+  diametro: 5.0
+  altura: 8.5
+
+pinos:
+  espacamento: 2.54
+  diametro_pad: 1.8
+  diametro_furo: 0.8
+
+kicad:
+  referencia: "D?"
+  valor: "LED_Vermelho"
+  descricao: "LED PTH 5mm vermelho — Vf~2.0V If~20mA"
+  tags: "led pth 5mm vermelho"
+  modelo_3d: "LED_5mm_Vermelho.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+eletrico:
+  tensao_maxima: "2.2V"
+  polaridade: true

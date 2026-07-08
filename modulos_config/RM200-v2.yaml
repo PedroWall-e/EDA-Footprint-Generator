@@ -1,0 +1,59 @@
+nome: "IoT_Comm_Module_Generic"
+fabricante: "Globalstar"
+mpn: "~"  # Confidencial
+datasheet_url: "~"  # Confidencial
+tipo: "castellated"
+
+pcb:
+  largura: 28.32
+  altura: 50.80
+  espessura: 3.60
+  material: "FR4"
+
+shield_metalico:
+  largura: 24.82    # 2*(pad_inner_x - 0.5mm) = 2*(12.91-0.5) — folga 0.5mm dos pads L/R em X
+  altura: 43.52     # 2*(pad_extremo_inner_y - 0.5mm) = 2*(22.26-0.5) — folga 0.5mm dos pads L/R em Y
+                    # antes: 27.72x50.20 — colisao 0.95mm em X e 2.84mm em Y!
+  espessura: 4.00   # altura da capa metalica acima do PCB (mm)
+
+
+pinos:
+  # O seu documento lista dois pitches [2.54, 3.81]. 
+  # Setamos o padrão para 2.54. O pitch irregular (3.81) precisará ser
+  # tratado pelo seu motor em Python para os pinos específicos onde ele ocorre.
+  pitch: 2.54
+  tamanho_pad:
+    largura: 2.0      # extensão perpendicular à borda (mm)
+    altura:  0.9      # extensão paralela à borda (mm)
+
+  overrides:
+    # Agrupamento de todos os pinos GND listados no seu escopo
+    - numeros: [1, 9, 16, 24, 26, 27, 29, 30, 32, 33, 35, 50, 52, 56]
+      largura: 2.5
+      altura:  1.2
+    
+    # Agrupamento dos pinos de RF e Antenas (LTE, BLE, GPS, SAT, NFC)
+    - numeros: [25, 28, 31, 34, 51, 57, 58]
+      largura: 2.5
+      altura:  1.2
+
+  lados:
+    # ATENÇÃO: Como o módulo possui 58 pinos mapeados, esta é uma 
+    # distribuição matemática simétrica estimativa. 
+    # Ajuste os valores exatos de acordo com a pinagem visual do módulo.
+    esquerdo: 19    # pinos 1 a 19
+    base:     10    # pinos 20 a 29
+    direito:  19    # pinos 30 a 48
+    topo:     10    # pinos 49 a 58
+
+kicad:
+  referencia: "U?"
+  valor: "IoT_Comm_Module_Generic"
+  descricao: "Módulo de comunicação IoT avançado com suporte a redes celulares (LTE), satélite, GPS, Bluetooth (BLE) e NFC."
+  tags: "lte satelite ble gps nfc iot smd castellated 4lados"
+  modelo_3d: "IoT_Comm_Module_Generic.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

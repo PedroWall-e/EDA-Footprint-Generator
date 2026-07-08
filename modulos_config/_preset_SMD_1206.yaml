@@ -1,0 +1,52 @@
+# =============================================================================
+# _preset_SMD_1206.yaml — Preset para Chip Resistor/Capacitor 1206 (3216 Metric)
+#
+# Pacote: 1206 Imperial / 3216 Metric
+# Padrao: dual_smd (motor universal — 2 pads SMD simetricos)
+# Dimensoes baseadas em IPC-7351B (densidade nominal "N")
+# Aplicacao: resistores, capacitores, indutores chip 1206
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "SMD_1206"
+padrao: "dual_smd"
+simbolo: "resistor"         # símbolo esquemático: resistor passivo genérico
+tipo_3d: "smd_chip"
+
+# --- Corpo do componente ---
+corpo:
+  largura: 3.2               # 3.2mm (dimensao ao longo do eixo dos pads)
+  comprimento: 1.6            # 1.6mm (dimensao perpendicular)
+  formato: "retangulo"
+
+# --- Pinos / Pads ---
+pinos:
+  total: 2
+  distribuicao: [1, 1]        # 1 pad de cada lado
+  tamanho_pad:
+    largura: 1.1              # extensao do pad no eixo X (mm)
+    altura: 1.5               # extensao do pad no eixo Y (mm)
+  afastamento_colunas: 3.2    # distancia centro-a-centro entre pads (mm)
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "R?"
+  valor: "1206"
+  descricao: "Chip Resistor/Capacitor 1206 (3216 Metric), SMD"
+  tags: "smd 1206 3216 chip resistor capacitor"
+  modelo_3d: "SMD_1206.step"
+
+# --- Tolerancias e margens (IPC-7351B) ---
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10
+
+# --- Nomes e tipos dos pinos ---
+pin_names:
+  1: "1"
+  2: "2"
+
+pin_types:
+  1: "passive"
+  2: "passive"

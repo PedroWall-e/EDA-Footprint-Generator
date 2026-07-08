@@ -1,0 +1,8 @@
+{
+  "name": "Data Frontier Footprint Generator",
+  "description": "Generate footprints from YAML definitions",
+  "identifier": "com.datafrontier.footprint-generator",
+  "type": "plugin",
+  "author": "Data Frontier",
+  "version": "2.0.0"
+}

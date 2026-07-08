@@ -1,0 +1,95 @@
+# =============================================================================
+# PRESET: Supercapacitor Coin Cell — padrao: custom
+# =============================================================================
+# Supercapacitor de estado sólido em formato coin cell (SMD).
+# Pads grandes laterais para soldar o componente cilíndrico na PCB.
+# Exemplo baseado em Eaton/Bussmann KR-5R5C105-R (1F 5.5V)
+# Dimensões: diâmetro 19.0mm, altura 5.0mm
+#
+# Para usar: duplique este arquivo, renomeie e ajuste as dimensões.
+# =============================================================================
+
+nome: "Supercap_1F_5V5_D19"
+padrao: custom
+simbolo: "capacitor"        # símbolo esquemático: capacitor polarizado (POS/NEG)
+
+fabricante: "Eaton"
+mpn: "KR-5R5C105-R"
+datasheet_url: "https://www.eaton.com/supercapacitors"
+
+eletrico:
+  tensao_maxima: "5.5V"
+  tolerancia: "-20%/+80%"
+
+pads:
+  # Pad negativo — aba esquerda
+  - numero: 1
+    nome: "NEG"
+    tipo_eletrico: "passive"
+    x: -10.5
+    y: 0.0
+    largura: 3.0
+    altura: 5.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  # Pad positivo — aba direita
+  - numero: 2
+    nome: "POS"
+    tipo_eletrico: "passive"
+    x: 10.5
+    y: 0.0
+    largura: 3.0
+    altura: 5.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  # Pads de fixação mecânica (sem conexão elétrica)
+  - numero: 3
+    nome: "MNT"
+    tipo_eletrico: "passive"
+    x: 0.0
+    y: -9.0
+    largura: 2.0
+    altura: 2.0
+    formato: "circulo"
+    montagem: "smd"
+
+  - numero: 4
+    nome: "MNT"
+    tipo_eletrico: "passive"
+    x: 0.0
+    y: 9.0
+    largura: 2.0
+    altura: 2.0
+    formato: "circulo"
+    montagem: "smd"
+
+corpo:
+  diametro: 19.0
+  altura: 5.0
+  formato: cilindro
+
+pin_names:
+  "1": "NEG"
+  "2": "POS"
+  "3": "MNT"
+  "4": "MNT"
+
+pin_types:
+  "1": "passive"
+  "2": "passive"
+  "3": "passive"
+  "4": "passive"
+
+kicad:
+  referencia: "C?"
+  valor: "1F_5V5"
+  descricao: "Supercapacitor 1F 5.5V coin cell SMD, diâmetro 19mm"
+  tags: "supercapacitor capacitor coin cell smd edlc"
+  modelo_3d: "Supercap_1F_5V5_D19.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

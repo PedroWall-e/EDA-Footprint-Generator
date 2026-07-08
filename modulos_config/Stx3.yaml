@@ -1,0 +1,42 @@
+nome: "Globalstar_STX3"
+fabricante: "Globalstar"
+mpn: "~"  # Confidencial
+datasheet_url: "~"  # Confidencial
+tipo: "castellated"
+
+pcb:
+  largura: 20.57
+  altura: 28.70
+  espessura: 1.50
+  material: "FR4"
+
+shield_metalico:
+  largura: 17.54    # ideal: 2*(pad_inner_x - 0.5mm) = 2*(9.27-0.5) — folga 0.5mm em X
+  altura: 24.40     # ideal: 2*(pad_inner_y - 0.5mm) = 2*(12.7-0.5) — folga 0.5mm em Y
+                    # (antes 26.50mm causava colisao de 0.55mm nos pads 1 e 16)
+  espessura: 2.61   # altura da capa metalica acima do PCB (datasheet)
+  material: "Aluminum"
+
+pinos:
+  total: 32
+  por_lado: 16
+  pitch: 1.778          # 70 mil — único pitch padrao que cabe 16 pinos em 28.70mm
+                         # span = 15 × 1.778 = 26.67mm < 28.70mm (margem ~1mm/lado)
+  tamanho_pad:
+    largura: 2.03        # extensao perpendicular à borda (mm) — para dentro do PCB
+    altura:  1.27        # extensao paralela à borda (mm) — gap = 1.778-1.27 = 0.508mm
+  numeracao:
+    inicio_esquerdo: 1
+    inicio_direito: 17
+
+kicad:
+  referencia: "U?"
+  valor: "STX3"
+  descricao: "Globalstar STX3 Commercial IoT Satellite Transmitter Module"
+  tags: "globalstar stx3 satellite transmitter iot module smd"
+  modelo_3d: "Globalstar_STX3.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

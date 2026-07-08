@@ -1,0 +1,54 @@
+# =============================================================================
+# _preset_BGA256_17x17.yaml — Preset: BGA-256 17x17 mm
+#
+# Encapsulamento BGA (Ball Grid Array) genérico para CIs de alto pin-count
+# como FPGAs, processadores e SoCs.
+#
+# Dimensões baseadas em corpo 17x17mm:
+#   - Corpo: 17.0 x 17.0 mm
+#   - Grid: 16 x 16 = 256 balls
+#   - Pitch: 1.0 mm
+#   - Diâmetro do pad: 0.5 mm
+#   - Nenhum pino excluído (grid completo)
+#
+# Numeração: linhas A-P (16 linhas), colunas 1-16.
+#   A1 = canto superior-esquerdo.
+#
+# Usa o motor universal (padrao: bga).
+# =============================================================================
+
+nome: "BGA256_17x17"
+padrao: "bga"
+tipo_3d: "bga"
+
+# --- Corpo ---
+corpo:
+  largura: 17.0                # mm — dimensão X do corpo
+  comprimento: 17.0            # mm — dimensão Y do corpo
+  altura_3d: 1.4               # mm — altura do encapsulamento
+
+# --- Pinos (BGA grid) ---
+pinos:
+  linhas: 16                   # linhas de balls (A-P)
+  colunas: 16                  # colunas de balls (1-16)
+  pitch: 1.0                   # mm — espaçamento entre balls
+  diametro_pad: 0.5            # mm — diâmetro do pad circular
+  total: 256                   # total de balls
+  excluir: []                  # nenhum pino excluído
+
+# --- Nomes dos pinos (gerados automaticamente pelo gerador) ---
+# Formato: A1, A2, ..., A16, B1, ..., P16
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "BGA256"
+  descricao: "BGA-256 17x17mm, 1.0mm pitch, ball grid array genérico"
+  tags: "bga bga256 17x17 smd ci fpga processador"
+  modelo_3d: "BGA256_17x17.step"
+
+# --- Tolerâncias e margens ---
+margens:
+  courtyard: 0.50              # mm — margem courtyard
+  silkscreen: 0.12             # espessura da linha de silkscreen
+  fab_line: 0.10               # espessura da linha de fabricação

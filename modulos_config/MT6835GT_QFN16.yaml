@@ -1,0 +1,80 @@
+# =============================================================================
+# MT6835GT — Encoder Magnetico 21-bit SPI, QFN-16 3x3mm
+# Baseado em: _preset_QFN16_4x4.yaml (ajustado para 3x3mm)
+# Datasheet: https://www.magntek.com.cn/upload/MT6835_Rev.1.0.pdf
+# =============================================================================
+
+nome: "MT6835GT_QFN16"
+padrao: "quad_smd"
+fabricante: "MagnTek"
+mpn: "MT6835GT"
+datasheet_url: "https://www.magntek.com.cn/upload/MT6835_Rev.1.0.pdf"
+tipo_3d: "qfn"
+
+corpo:
+  largura: 3.0
+  altura: 3.0
+
+pinos:
+  total: 16
+  pitch: 0.5
+  tamanho_pad:
+    largura: 0.7
+    altura: 0.25
+  lados:
+    esquerdo: 4
+    base: 4
+    direito: 4
+    topo: 4
+  thermal_pad:
+    largura: 1.7
+    altura: 1.7
+    pasta_ratio: 0.5
+
+pin_names:
+  1: "SCK"
+  2: "SDI"
+  3: "SDO"
+  4: "~{CS}"
+  5: "VDD"
+  6: "CAL"
+  7: "MODE"
+  8: "GND"
+  9: "A"
+  10: "B"
+  11: "Z"
+  12: "PWM"
+  13: "NC1"
+  14: "NC2"
+  15: "NC3"
+  16: "NC4"
+
+pin_types:
+  1: "input"
+  2: "input"
+  3: "output"
+  4: "input"
+  5: "power_in"
+  6: "input"
+  7: "input"
+  8: "power_in"
+  9: "output"
+  10: "output"
+  11: "output"
+  12: "output"
+  13: "passive"
+  14: "passive"
+  15: "passive"
+  16: "passive"
+
+kicad:
+  referencia: "U?"
+  valor: "MT6835GT"
+  descricao: "Encoder magnetico 21-bit SPI, QFN-16 3x3mm, 120kRPM"
+  tags: "encoder magnetico mt6835 spi qfn16 3x3 21bit magntek"
+  modelo_3d: "MT6835GT_QFN16.step"
+
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10

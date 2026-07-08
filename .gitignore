@@ -1,0 +1,34 @@
+# Arquivos gerados em runtime
+__pycache__/
+*.pyc
+*.pyo
+_debug_3d.txt
+_estado_atual.json
+error.log
+
+# Ambiente virtual
+.venv/
+
+# Saída gerada (footprints, symbols, 3D)
+saida/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+erro_log.txt
+
+# Build
+build/dist/
+build/work/
+*.spec
+*.egg-info/
+dist/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

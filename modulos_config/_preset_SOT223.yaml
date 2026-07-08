@@ -1,0 +1,81 @@
+# =============================================================================
+# _preset_SOT223.yaml — Preset: SOT-223 (4 pinos)
+#
+# Encapsulamento SMD para reguladores lineares de tensao (AMS1117, LM1117,
+# LD1117, MCP1700), transistores de potencia e drivers.
+#
+# Dimensoes baseadas no datasheet JEDEC TO-261AA / SOT-223:
+#   - Corpo: 6.5 x 3.5 mm
+#   - Pad pequeno (pinos 1-3): 1.2 x 0.7 mm
+#   - Pad grande/tab (pino 4): 3.0 x 1.5 mm (override via pinos_absolutos)
+#   - Pitch: 2.3 mm
+#   - Afastamento entre colunas (centro-centro): 6.2 mm
+#
+# Distribuicao assimetrica: 3 pinos no lado esquerdo, 1 tab no lado direito.
+#
+# NOTA: O pino 4 (tab) tem pad superdimensionado em relacao aos pinos 1-3.
+# O override de tamanho e definido em pinos_absolutos.
+#
+# Pinagem padrao (regulador tipo AMS1117):
+#   Pino 1: I/O (Adjust/Input dependendo do modelo)
+#   Pino 2: GND
+#   Pino 3: I/O (Output/Input dependendo do modelo)
+#   Pino 4: TAB (geralmente conectado ao Output)
+#
+# Usa o motor universal (padrao: dual_smd).
+# =============================================================================
+
+nome: "SOT223"
+padrao: "dual_smd"
+simbolo: "regulador"        # símbolo esquemático: regulador de tensão (IN/GND/OUT/TAB)
+tipo_3d: "sot23"
+
+# --- Corpo ---
+corpo:
+  largura: 6.5               # mm — dimensao X do corpo
+  comprimento: 3.5            # mm — dimensao Y do corpo
+  afastamento_colunas: 6.2    # mm — centro-centro entre colunas de pads
+
+# --- Pinos ---
+pinos:
+  total: 4
+  pitch: 2.3                  # mm — espacamento entre pinos pequenos (lado esq.)
+  distribuicao: [3, 1]        # 3 pinos pequenos lado esquerdo, 1 tab lado direito
+  tamanho_pad:
+    largura: 1.2              # mm — extensao perpendicular (pad pequeno)
+    altura: 0.7               # mm — extensao paralela (pad pequeno)
+
+# --- Override do pino 4 (tab superdimensionado) ---
+pinos_absolutos:
+  4:
+    pad:
+      largura: 3.0            # mm — tab largo para dissipacao termica
+      altura: 1.5             # mm — tab alto
+
+# --- Nomes dos pinos ---
+pin_names:
+  1: "I/O"                    # Adjust ou Input (depende do regulador)
+  2: "GND"                    # Terra
+  3: "I/O"                    # Output ou Input (depende do regulador)
+  4: "TAB"                    # Tab — geralmente conectado ao Output
+
+# --- Tipos eletricos dos pinos ---
+pin_types:
+  1: "passive"                # I/O generico
+  2: "power_in"               # GND
+  3: "passive"                # I/O generico
+  4: "passive"                # TAB (conexao termica/eletrica)
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "SOT223"
+  descricao: "SOT-223 4 pinos, regulador linear SMD, JEDEC TO-261AA"
+  tags: "sot223 sot-223 regulador ldo ams1117 lm1117 smd tab"
+  modelo_3d: "SOT223.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25             # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12            # espessura da linha de silkscreen
+  fab_line: 0.10              # espessura da linha de fabricacao

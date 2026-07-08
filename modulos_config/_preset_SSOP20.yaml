@@ -1,0 +1,97 @@
+# =============================================================================
+# _preset_SSOP20.yaml — Preset: SSOP-20 (20 pinos)
+#
+# Encapsulamento SSOP (Shrink Small Outline Package) para CIs SMD como
+# shift registers, multiplexadores, drivers de LED, ADCs e DACs.
+#
+# Dimensoes baseadas no datasheet JEDEC MO-150 / SSOP-20:
+#   - Corpo: 7.2 x 5.3 mm
+#   - Pad: 1.5 x 0.35 mm (largura perpendicular a borda x altura paralela)
+#   - Pitch: 0.65 mm
+#   - Afastamento entre colunas (centro-centro): 8.0 mm
+#   - 20 pinos: 10 por lado
+#
+# Numeracao padrao dual:
+#   Esquerdo: pinos 1-10  (cima para baixo)
+#   Direito:  pinos 11-20 (baixo para cima)
+#
+# Usa o motor universal (padrao: dual_smd).
+# =============================================================================
+
+nome: "SSOP20"
+padrao: "dual_smd"
+tipo_3d: "ssop"
+
+# --- Corpo ---
+corpo:
+  largura: 7.2               # mm — dimensao X do corpo
+  comprimento: 5.3            # mm — dimensao Y do corpo
+  afastamento_colunas: 8.0    # mm — centro-centro entre colunas de pads
+
+# --- Pinos ---
+pinos:
+  total: 20
+  pitch: 0.65                 # mm — espacamento entre pinos no mesmo lado
+  tamanho_pad:
+    largura: 1.5              # mm — extensao perpendicular a borda
+    altura: 0.35              # mm — extensao paralela a borda
+
+# --- Nomes dos pinos (generico — ajustar conforme o CI) ---
+pin_names:
+  1: "1"
+  2: "2"
+  3: "3"
+  4: "4"
+  5: "5"
+  6: "6"
+  7: "7"
+  8: "8"
+  9: "9"
+  10: "10"
+  11: "11"
+  12: "12"
+  13: "13"
+  14: "14"
+  15: "15"
+  16: "16"
+  17: "17"
+  18: "18"
+  19: "19"
+  20: "20"
+
+# --- Tipos eletricos dos pinos (generico) ---
+pin_types:
+  1: "unspecified"
+  2: "unspecified"
+  3: "unspecified"
+  4: "unspecified"
+  5: "unspecified"
+  6: "unspecified"
+  7: "unspecified"
+  8: "unspecified"
+  9: "unspecified"
+  10: "unspecified"
+  11: "unspecified"
+  12: "unspecified"
+  13: "unspecified"
+  14: "unspecified"
+  15: "unspecified"
+  16: "unspecified"
+  17: "unspecified"
+  18: "unspecified"
+  19: "unspecified"
+  20: "unspecified"
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "SSOP20"
+  descricao: "SSOP-20 pinos, CI SMD shrink small outline package, JEDEC MO-150"
+  tags: "ssop ssop20 shrink smd ci dual 0.65mm shift-register"
+  modelo_3d: "SSOP20.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25             # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12            # espessura da linha de silkscreen
+  fab_line: 0.10              # espessura da linha de fabricacao

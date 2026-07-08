@@ -1,0 +1,46 @@
+nome: "ModuloLTE_4Lados"
+fabricante: "Teste"
+mpn: "~"  # Componente de teste
+datasheet_url: "~"
+tipo: "castellated"
+
+pcb:
+  largura: 24.0
+  altura: 30.0
+  espessura: 1.0
+  material: "FR4"
+
+# shield_metalico: null   # sem shield neste modulo
+
+pinos:
+  pitch: 1.8
+  tamanho_pad:
+    largura: 2.0      # extensao perpendicular a borda (mm)
+    altura:  0.9      # extensao paralela a borda (mm) — espaco entre pinos
+
+  # Pinos de potencia com pad maior (VCC e GND)
+  overrides:
+    - numeros: [1, 40]       # VCC (pino 1 = canto sup-esq, pino 40 = ultimo do topo)
+      largura: 2.5
+      altura:  1.4
+    - numeros: [20, 21]      # GND (pinos de transicao base→direito)
+      largura: 2.5
+      altura:  1.4
+
+  lados:
+    esquerdo: 12    # pinos 1-12   (cima → baixo)
+    base:      8    # pinos 13-20  (esq  → dir)
+    direito:  12    # pinos 21-32  (baixo → cima)
+    topo:      8    # pinos 33-40  (dir  → esq)
+
+kicad:
+  referencia: "U?"
+  valor: "ModuloLTE_4Lados"
+  descricao: "Modulo LTE ficticio 4 lados castelados, 40 pinos, VCC/GND oversize"
+  tags: "lte modulo castellated 4lados smd"
+  modelo_3d: "ModuloLTE_4Lados.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

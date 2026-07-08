@@ -1,0 +1,52 @@
+# =============================================================================
+# _preset_SMA_DO214AC.yaml — Preset para Diodo SMD SMA (DO-214AC)
+#
+# Pacote: SMA / DO-214AC (JEDEC)
+# Padrao: dual_smd (motor universal — 2 pads SMD simetricos)
+# Dimensoes baseadas em IPC-7351B (densidade nominal "N")
+# Aplicacao: diodos retificadores de potencia, TVS, Schottky em pacote SMA
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "SMA_DO214AC"
+padrao: "dual_smd"
+simbolo: "diodo"            # símbolo esquemático: diodo genérico (catodo/anodo)
+tipo_3d: "smd_diode"
+
+# --- Corpo do componente ---
+corpo:
+  largura: 4.3               # 4.3mm (dimensao ao longo do eixo dos pads)
+  comprimento: 2.5            # 2.5mm (dimensao perpendicular)
+  formato: "retangulo"
+
+# --- Pinos / Pads ---
+pinos:
+  total: 2
+  distribuicao: [1, 1]        # 1 pad de cada lado
+  tamanho_pad:
+    largura: 1.7              # extensao do pad no eixo X (mm)
+    altura: 2.3               # extensao do pad no eixo Y (mm)
+  afastamento_colunas: 4.4    # distancia centro-a-centro entre pads (mm)
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "D?"
+  valor: "SMA"
+  descricao: "Power Diode SMD SMA (DO-214AC), rectifier/TVS/Schottky"
+  tags: "smd sma do-214ac diode power rectifier tvs schottky"
+  modelo_3d: "SMA_DO214AC.step"
+
+# --- Tolerancias e margens (IPC-7351B) ---
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10
+
+# --- Nomes e tipos dos pinos ---
+pin_names:
+  1: "K"                      # Catodo (Kathode)
+  2: "A"                      # Anodo (Anode)
+
+pin_types:
+  1: "passive"
+  2: "passive"

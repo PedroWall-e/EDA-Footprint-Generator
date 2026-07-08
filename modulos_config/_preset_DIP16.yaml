@@ -1,0 +1,68 @@
+# =============================================================================
+# Preset: DIP-16 — CI logico dual in-line (16 pinos, PTH)
+# Encapsulamento JEDEC MS-001 variacao BB (300mil)
+# Dimensoes conforme IPC-7251 — tipico para 74xx, CD4xxx, MAX232
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "DIP16"
+tipo: "ci_dip"
+
+pinos:
+  total: 16
+  pitch: 2.54
+  diametro_pad: 1.6
+  diametro_furo: 0.8
+
+corpo:
+  largura: 6.35            # largura do corpo plastico (mm) — 250 mil
+  comprimento: 19.56       # (16/2 - 1) * 2.54 = 7 * 2.54 = 17.78mm + margem
+  afastamento_colunas: 7.62  # distancia entre colunas de pinos — 300 mil
+
+kicad:
+  referencia: "U?"
+  valor: "DIP16"
+  descricao: "DIP-16 generic IC package, PTH, 300mil width, pitch 2.54mm"
+  tags: "dip dip-16 dip16 ci pth through-hole 300mil 74xx logic"
+  modelo_3d: "DIP16.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "Pin_1"
+  2: "Pin_2"
+  3: "Pin_3"
+  4: "Pin_4"
+  5: "Pin_5"
+  6: "Pin_6"
+  7: "Pin_7"
+  8: "GND"
+  9: "Pin_9"
+  10: "Pin_10"
+  11: "Pin_11"
+  12: "Pin_12"
+  13: "Pin_13"
+  14: "Pin_14"
+  15: "Pin_15"
+  16: "VCC"
+
+pin_types:
+  1: "unspecified"
+  2: "unspecified"
+  3: "unspecified"
+  4: "unspecified"
+  5: "unspecified"
+  6: "unspecified"
+  7: "unspecified"
+  8: "power_in"
+  9: "unspecified"
+  10: "unspecified"
+  11: "unspecified"
+  12: "unspecified"
+  13: "unspecified"
+  14: "unspecified"
+  15: "unspecified"
+  16: "power_in"

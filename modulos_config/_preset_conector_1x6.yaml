@@ -1,0 +1,43 @@
+# =============================================================================
+# Preset: Conector Pin Header 1x6 — Header reto 6 pinos (PTH)
+# Conector macho 1 fileira, 6 pinos, passo 2.54mm
+# Dimensoes conforme IPC-7251 — tipico para UART, I2C, SPI, FTDI
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "Conn_01x06_PinHeader"
+tipo: "conector_pth"
+
+pinos:
+  total: 6
+  pitch: 2.54
+  diametro_pad: 1.7
+  diametro_furo: 1.0
+
+kicad:
+  referencia: "J?"
+  valor: "Conn_01x06"
+  descricao: "Pin header 1x6, single-row, PTH, pitch 2.54mm"
+  tags: "conector header pin 1x6 6pin pth 2.54mm uart i2c spi ftdi"
+  modelo_3d: "Conn_01x06_PinHeader.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "Pin_1"
+  2: "Pin_2"
+  3: "Pin_3"
+  4: "Pin_4"
+  5: "Pin_5"
+  6: "Pin_6"
+
+pin_types:
+  1: "passive"
+  2: "passive"
+  3: "passive"
+  4: "passive"
+  5: "passive"
+  6: "passive"

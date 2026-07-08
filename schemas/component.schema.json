@@ -1,0 +1,815 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cam-cad-data-frontier.github.io/schemas/component.schema.json",
+  "title": "Componente CAM-CAD Data Frontier",
+  "description": "Schema JSON para arquivos YAML de componentes da Plataforma CAM-CAD Data Frontier. Define a estrutura completa para geração automática de footprints (.kicad_mod), símbolos (.kicad_sym) e modelos 3D (.step) para o KiCad.",
+  "type": "object",
+  "required": ["nome"],
+
+  "properties": {
+
+    "nome": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\s]+$",
+      "description": "Nome único do componente. Sem espaços — use _ ou CamelCase. Ex: 'NE555_DIP8', 'Resistor_470R'."
+    },
+
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "resistor_pth",
+        "diodo_pth",
+        "led_pth",
+        "capacitor_pth",
+        "transistor_to92",
+        "crystal_hc49",
+        "conector_pth",
+        "ci_dip",
+        "ci_soic",
+        "castellated"
+      ],
+      "description": "Motor Preset — tipo pré-programado do componente. Escolha entre 10 tipos disponíveis. Se 'padrao' também estiver presente, 'padrao' tem prioridade."
+    },
+
+    "padrao": {
+      "type": "string",
+      "enum": [
+        "axial_pth",
+        "radial_pth",
+        "dual_pth",
+        "dual_smd",
+        "quad_smd",
+        "custom",
+        "bga"
+      ],
+      "description": "Motor Universal — padrão paramétrico de distribuição de pads. 7 padrões disponíveis. Tem prioridade sobre 'tipo' quando ambos estão presentes."
+    },
+
+    "simbolo": {
+      "type": "string",
+      "enum": [
+        "resistor",
+        "capacitor",
+        "diodo",
+        "diodo_zener",
+        "diodo_schottky",
+        "led",
+        "transistor",
+        "mosfet_n",
+        "mosfet_p",
+        "regulador",
+        "opamp",
+        "indutor",
+        "fusivel",
+        "bateria",
+        "antena",
+        "crystal",
+        "conector",
+        "ci",
+        "bga"
+      ],
+      "description": "Template do símbolo esquemático (.kicad_sym). Opcional — se omitido, auto-detecta pelo tipo/padrao e número de pinos."
+    },
+
+    "tipo_3d": {
+      "type": "string",
+      "description": "Identificador do template de modelo 3D. Valores típicos: 'smd_chip', 'sot23', 'qfn', 'tqfp', 'ssop', 'dpak', 'to220', 'bga'. Opcional."
+    },
+
+    "fabricante": {
+      "type": "string",
+      "description": "Nome do fabricante do componente. Ex: 'Texas Instruments', 'Vishay'."
+    },
+
+    "mpn": {
+      "type": "string",
+      "description": "Manufacturer Part Number — código do fabricante. Ex: 'NE555P', '1N4007-E3/54'."
+    },
+
+    "datasheet_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL do datasheet do componente."
+    },
+
+    "pinos": {
+      "$ref": "#/$defs/pinos",
+      "description": "Configuração dos pinos/pads do componente."
+    },
+
+    "corpo": {
+      "$ref": "#/$defs/corpo",
+      "description": "Dimensões físicas do corpo/encapsulamento do componente."
+    },
+
+    "pcb": {
+      "$ref": "#/$defs/pcb",
+      "description": "Dimensões da placa do módulo (usado em componentes tipo 'castellated' e 'quad_smd')."
+    },
+
+    "shield_metalico": {
+      "$ref": "#/$defs/shield_metalico",
+      "description": "Dimensões do shield metálico sobre o módulo (usado em componentes castellated)."
+    },
+
+    "pads": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/custom_pad" },
+      "description": "Lista de pads individuais com posição, tamanho e formato arbitrários. Obrigatório para padrao: custom."
+    },
+
+    "kicad": {
+      "$ref": "#/$defs/kicad",
+      "description": "Metadados para exportação ao KiCad — referência, valor, descrição, tags e modelo 3D."
+    },
+
+    "margens": {
+      "$ref": "#/$defs/margens",
+      "description": "Tolerâncias e margens de fabricação em mm (courtyard, silkscreen, fab_line)."
+    },
+
+    "eletrico": {
+      "$ref": "#/$defs/eletrico",
+      "description": "Especificações elétricas opcionais do componente (tolerância, potência, tensão, polaridade)."
+    },
+
+    "pin_names": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Mapeamento número do pino → nome funcional. Ex: {\"1\": \"GND\", \"2\": \"VCC\"}. Chaves podem ser inteiros ou strings."
+    },
+
+    "pin_types": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "input",
+          "output",
+          "bidirectional",
+          "power_in",
+          "power_out",
+          "passive",
+          "open_collector",
+          "tri_state",
+          "unspecified"
+        ]
+      },
+      "description": "Mapeamento número do pino → tipo elétrico. Valores válidos: input, output, bidirectional, power_in, power_out, passive, open_collector, tri_state, unspecified."
+    },
+
+    "pinos_absolutos": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "posicao": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number", "description": "Posição X absoluta em mm." },
+              "y": { "type": "number", "description": "Posição Y absoluta em mm." }
+            },
+            "description": "Posição absoluta do pino em mm."
+          },
+          "pad": {
+            "type": "object",
+            "properties": {
+              "largura": { "type": "number", "minimum": 0, "description": "Largura do pad em mm." },
+              "altura": { "type": "number", "minimum": 0, "description": "Altura do pad em mm." }
+            },
+            "description": "Tamanho específico do pad (override do padrão)."
+          }
+        },
+        "description": "Override de posição e/ou tamanho para um pino específico."
+      },
+      "description": "Overrides por pino — posição e tamanho absolutos para pinos individuais. Usado em SOT-223, DPAK, etc."
+    },
+
+    "modelo_3d_python": {
+      "type": "string",
+      "description": "Código CadQuery personalizado para gerar modelo 3D. Substitui o template 3D built-in. Variáveis disponíveis: cq, show_object, dados, nome, os, math."
+    },
+
+    "solder_mask_expansion": {
+      "type": "number",
+      "description": "Expansão da máscara de solda além do pad em mm. Opcional."
+    },
+
+    "solder_paste_margin": {
+      "type": "number",
+      "description": "Margem da pasta de solda em mm (negativo = menor que pad). Opcional."
+    },
+
+    "thermal_pad": {
+      "$ref": "#/$defs/thermal_pad_root",
+      "description": "Pad térmico central para CIs com exposed pad (QFN, DFN). Opcional — alternativa a pinos.thermal_pad."
+    }
+  },
+
+  "anyOf": [
+    { "required": ["tipo"] },
+    { "required": ["padrao"] }
+  ],
+
+  "allOf": [
+    {
+      "if": {
+        "properties": { "padrao": { "const": "custom" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pads"],
+        "properties": {
+          "pads": {
+            "description": "Lista de pads individuais — obrigatória para padrao: custom."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "bga" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração de grid BGA — requer linhas, colunas, pitch e diametro_pad.",
+            "required": ["linhas", "colunas", "pitch", "diametro_pad"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "axial_pth" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração axial PTH — requer espacamento, diametro_pad e diametro_furo.",
+            "required": ["espacamento", "diametro_pad", "diametro_furo"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "radial_pth" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração radial PTH — requer pitch, diametro_pad e diametro_furo.",
+            "required": ["pitch", "diametro_pad", "diametro_furo"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "dual_pth" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração dual PTH — requer total, pitch, diametro_pad e diametro_furo.",
+            "required": ["total", "pitch", "diametro_pad", "diametro_furo"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "dual_smd" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração dual SMD — requer total, pitch e tamanho_pad.",
+            "required": ["total", "tamanho_pad"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "padrao": { "const": "quad_smd" } },
+        "required": ["padrao"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Configuração quad SMD — requer pitch e tamanho_pad.",
+            "required": ["pitch", "tamanho_pad"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipo": { "const": "castellated" } },
+        "required": ["tipo"]
+      },
+      "then": {
+        "required": ["pinos", "pcb"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipo": { "const": "ci_dip" } },
+        "required": ["tipo"]
+      },
+      "then": {
+        "required": ["pinos", "corpo"],
+        "properties": {
+          "pinos": {
+            "description": "Pinos DIP — requer total, pitch, diametro_pad e diametro_furo.",
+            "required": ["total", "pitch", "diametro_pad", "diametro_furo"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipo": { "const": "ci_soic" } },
+        "required": ["tipo"]
+      },
+      "then": {
+        "required": ["pinos", "corpo"],
+        "properties": {
+          "pinos": {
+            "description": "Pinos SOIC — requer total, pitch e tamanho_pad.",
+            "required": ["total", "pitch", "tamanho_pad"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "tipo": { "const": "conector_pth" } },
+        "required": ["tipo"]
+      },
+      "then": {
+        "required": ["pinos"],
+        "properties": {
+          "pinos": {
+            "description": "Pinos conector — requer total, pitch, diametro_pad e diametro_furo.",
+            "required": ["total", "pitch", "diametro_pad", "diametro_furo"]
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+
+    "pinos": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número total de pinos do componente."
+        },
+        "pitch": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Espaçamento entre centros de pinos adjacentes em mm. Use 0 para componentes 2-pad SMD onde pitch não se aplica."
+        },
+        "espacamento": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Distância centro-a-centro entre pads em mm. Usado em componentes axiais (resistor, diodo, LED, cristal, capacitor)."
+        },
+        "diametro_pad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Diâmetro externo do pad de cobre em mm (componentes PTH). IPC: diametro_pad >= diametro_furo + 0.30mm."
+        },
+        "diametro_furo": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Diâmetro do furo de solda (drill) em mm. Deve ser menor que diametro_pad."
+        },
+        "tamanho_pad": {
+          "type": "object",
+          "properties": {
+            "largura": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Dimensão do pad perpendicular à borda do corpo em mm (eixo X)."
+            },
+            "altura": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Dimensão do pad paralela à borda do corpo em mm (eixo Y)."
+            }
+          },
+          "required": ["largura", "altura"],
+          "description": "Tamanho dos pads SMD (largura x altura em mm)."
+        },
+        "distribuicao": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Distribuição de pads por lado [lado_esquerdo, lado_direito]. Ex: SOT-23 [2,1], SOT-223 [3,1], chip 2-pad [1,1]."
+        },
+        "pinagem": {
+          "type": "string",
+          "description": "Ordem dos pinos para transistores TO-92. Ex: 'CBE' (Coletor-Base-Emissor), 'EBC', 'BCE'."
+        },
+        "por_lado": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número de pinos por lado — usado em quad (mesmo número nos 4 lados) e castellated."
+        },
+        "lados": {
+          "type": "object",
+          "properties": {
+            "esquerdo": { "type": "integer", "minimum": 0, "description": "Número de pinos no lado esquerdo." },
+            "base": { "type": "integer", "minimum": 0, "description": "Número de pinos na base (lado inferior)." },
+            "direito": { "type": "integer", "minimum": 0, "description": "Número de pinos no lado direito." },
+            "topo": { "type": "integer", "minimum": 0, "description": "Número de pinos no topo (lado superior)." }
+          },
+          "description": "Número de pinos por lado para componentes quad/castellated."
+        },
+        "thermal_pad": {
+          "$ref": "#/$defs/thermal_pad",
+          "description": "Pad térmico central (exposed pad) para dissipação de calor. Comum em QFN, DFN, alguns SOICs."
+        },
+        "overrides": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "largura": { "type": "number", "minimum": 0, "description": "Largura do pad override em mm." },
+                  "altura": { "type": "number", "minimum": 0, "description": "Altura do pad override em mm." }
+                },
+                "description": "Tamanho específico para um pad individual."
+              },
+              "description": "Override de tamanho por número de pino (formato dict). Ex: {\"1\": {\"largura\": 1.2, \"altura\": 0.8}}."
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "numeros": {
+                    "type": "array",
+                    "items": { "type": "integer" },
+                    "description": "Lista de números de pinos que recebem este override."
+                  },
+                  "largura": { "type": "number", "minimum": 0, "description": "Largura override em mm." },
+                  "altura": { "type": "number", "minimum": 0, "description": "Altura override em mm." }
+                },
+                "required": ["numeros"],
+                "description": "Override de tamanho para um grupo de pinos."
+              },
+              "description": "Override de tamanho por grupo de pinos (formato lista). Ex: [{\"numeros\": [1, 40], \"largura\": 2.5, \"altura\": 1.4}]."
+            }
+          ],
+          "description": "Pads com tamanho diferente do padrão. Aceita formato dict (por pino) ou lista (por grupo)."
+        },
+        "numeracao": {
+          "type": "object",
+          "properties": {
+            "inicio_esquerdo": { "type": "integer", "description": "Número do primeiro pino do lado esquerdo." },
+            "inicio_direito": { "type": "integer", "description": "Número do primeiro pino do lado direito." }
+          },
+          "description": "Controle de numeração para módulos castellated (início de cada lado)."
+        },
+        "afastamento_colunas": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Distância centro-a-centro entre colunas de pads em mm. Alternativa a corpo.afastamento_colunas para componentes SMD 2-pad."
+        },
+        "afastamento": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Distância centro-a-centro entre lados opostos em mm. Usado em TQFP e QFP."
+        },
+        "linhas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número de linhas de balls no grid BGA (ex: 16 para A-P)."
+        },
+        "colunas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número de colunas de balls no grid BGA (ex: 16 para 1-16)."
+        },
+        "excluir": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Lista de balls a excluir no BGA. Ex: [\"A1\", \"P16\"]."
+        }
+      },
+      "description": "Configuração de pinos/pads do componente."
+    },
+
+    "corpo": {
+      "type": "object",
+      "properties": {
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Largura do corpo do componente em mm (eixo X)."
+        },
+        "comprimento": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Comprimento do corpo em mm (eixo Y). Sinônimo de 'altura' para corpo."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura/comprimento do corpo em mm (eixo Y). Usado como alternativa a 'comprimento'."
+        },
+        "diametro": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Diâmetro do corpo em mm. Usado para componentes cilíndricos (LED, capacitor, transistor TO-92)."
+        },
+        "afastamento_colunas": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Distância centro-a-centro entre as 2 fileiras/colunas de pads em mm. Obrigatório para DIP, SOIC, SSOP."
+        },
+        "formato": {
+          "type": "string",
+          "enum": ["retangulo", "cilindro", "dshape"],
+          "description": "Formato geométrico do corpo. 'retangulo' (padrão): corpo retangular. 'cilindro': corpo circular. 'dshape': forma D (TO-92)."
+        },
+        "altura_3d": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura do encapsulamento para o modelo 3D em mm."
+        }
+      },
+      "description": "Dimensões físicas do corpo/encapsulamento."
+    },
+
+    "pcb": {
+      "type": "object",
+      "properties": {
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Largura da placa do módulo em mm."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura da placa do módulo em mm."
+        },
+        "espessura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Espessura da placa em mm."
+        },
+        "material": {
+          "type": "string",
+          "description": "Material da placa. Ex: 'FR4'."
+        }
+      },
+      "required": ["largura", "altura"],
+      "description": "Dimensões da placa do módulo (usado em castellated e quad_smd)."
+    },
+
+    "shield_metalico": {
+      "type": "object",
+      "properties": {
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Largura do shield metálico em mm."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura do shield metálico em mm."
+        },
+        "espessura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Espessura/altura do shield metálico acima do PCB em mm."
+        },
+        "material": {
+          "type": "string",
+          "description": "Material do shield. Ex: 'Aluminum'."
+        }
+      },
+      "description": "Shield metálico sobre módulos castellated."
+    },
+
+    "custom_pad": {
+      "type": "object",
+      "properties": {
+        "numero": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Número identificador do pad. Auto-incrementa se omitido."
+        },
+        "nome": {
+          "type": "string",
+          "description": "Nome funcional do pad. Ex: 'SIGNAL', 'GND', 'VCC'."
+        },
+        "tipo_eletrico": {
+          "type": "string",
+          "enum": [
+            "input", "output", "bidirectional",
+            "power_in", "power_out", "passive",
+            "open_collector", "tri_state", "unspecified"
+          ],
+          "description": "Tipo elétrico do pad."
+        },
+        "x": {
+          "type": "number",
+          "description": "Posição X do pad em mm (0,0 = centro do componente)."
+        },
+        "y": {
+          "type": "number",
+          "description": "Posição Y do pad em mm (positivo = baixo, convenção KiCad)."
+        },
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Dimensão X do pad em mm."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Dimensão Y do pad em mm."
+        },
+        "formato": {
+          "type": "string",
+          "enum": ["retangulo", "circulo", "oval", "roundrect", "rect", "circle"],
+          "description": "Formato do pad: 'retangulo' (padrão), 'circulo', 'oval', 'roundrect'."
+        },
+        "montagem": {
+          "type": "string",
+          "enum": ["smd", "pth"],
+          "description": "Tipo de montagem: 'smd' (superficial) ou 'pth' (through-hole)."
+        },
+        "furo": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Diâmetro do furo em mm. Somente para montagem PTH. 0 = SMD."
+        },
+        "roundrect_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5,
+          "description": "Raio das bordas arredondadas para formato 'roundrect' (0.0 a 0.5)."
+        }
+      },
+      "required": ["x", "y", "largura", "altura"],
+      "description": "Definição de um pad individual para padrao: custom."
+    },
+
+    "kicad": {
+      "type": "object",
+      "properties": {
+        "referencia": {
+          "type": "string",
+          "description": "Prefixo de referência no esquemático. Ex: R?=Resistor, D?=Diodo, U?=CI, Q?=Transistor, C?=Capacitor, Y?=Cristal, J?=Conector, ANT?=Antena, BT?=Bateria, L?=Indutor, F?=Fusível."
+        },
+        "valor": {
+          "type": "string",
+          "description": "Texto do valor mostrado no esquemático. Ex: '470R', 'NE555', '100uF'."
+        },
+        "descricao": {
+          "type": "string",
+          "description": "Descrição completa do componente para a biblioteca KiCad."
+        },
+        "tags": {
+          "type": "string",
+          "description": "Tags para busca na biblioteca (palavras separadas por espaço)."
+        },
+        "modelo_3d": {
+          "type": "string",
+          "description": "Nome do arquivo 3D gerado (.step). Ex: 'NE555_DIP8.step'."
+        },
+        "footprint_lib": {
+          "type": "string",
+          "description": "Referência da biblioteca de footprint. Ex: 'DataFrontier:NE555_DIP8'. Opcional."
+        }
+      },
+      "description": "Metadados KiCad — obrigatórios para geração de artefatos."
+    },
+
+    "margens": {
+      "type": "object",
+      "properties": {
+        "courtyard": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Margem de courtyard em mm. IPC-7351: 0.25mm para SMD, 0.50mm para PTH."
+        },
+        "silkscreen": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Largura da linha de silkscreen (F.SilkS) em mm. Padrão: 0.12mm."
+        },
+        "fab_line": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Largura da linha da camada de fabricação (F.Fab) em mm. Padrão: 0.10mm."
+        }
+      },
+      "description": "Tolerâncias e margens de fabricação em mm."
+    },
+
+    "eletrico": {
+      "type": "object",
+      "properties": {
+        "tolerancia": {
+          "type": "string",
+          "description": "Tolerância do componente. Ex: '1%', '5%', '10%', '-20%/+80%'."
+        },
+        "potencia": {
+          "type": "string",
+          "description": "Dissipação máxima de potência. Ex: '0.25W', '1W'."
+        },
+        "tensao_maxima": {
+          "type": "string",
+          "description": "Tensão máxima suportada. Ex: '16V', '50V', '1000V'."
+        },
+        "polaridade": {
+          "type": "boolean",
+          "description": "true = componente polarizado, false = não polarizado."
+        }
+      },
+      "description": "Especificações elétricas do componente."
+    },
+
+    "thermal_pad": {
+      "type": "object",
+      "properties": {
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Largura do pad térmico central em mm."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura do pad térmico central em mm."
+        },
+        "paste_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Porcentagem de cobertura de pasta de solda (0.0 a 1.0). Típico: 0.5."
+        },
+        "pasta_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Sinônimo de paste_ratio. Porcentagem de cobertura de pasta de solda (0.0 a 1.0)."
+        }
+      },
+      "required": ["largura", "altura"],
+      "description": "Pad térmico central (exposed pad) para dissipação de calor."
+    },
+
+    "thermal_pad_root": {
+      "type": "object",
+      "properties": {
+        "largura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Largura do pad térmico central em mm."
+        },
+        "altura": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Altura do pad térmico central em mm."
+        },
+        "pasta_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Porcentagem de cobertura de pasta de solda (0.0 a 1.0). Típico: 0.5."
+        }
+      },
+      "description": "Pad térmico central (alternativa root-level)."
+    }
+  }
+}

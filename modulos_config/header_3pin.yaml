@@ -1,0 +1,29 @@
+# Conector header 3 pinos PTH — passo 2.54mm
+nome: "Conn_01x03"
+tipo: "conector_pth"
+fabricante: "Genérico"
+mpn: "PH-1x3-2.54"
+datasheet_url: "~"
+
+pinos:
+  total: 3
+  pitch: 2.54
+  diametro_pad: 1.7
+  diametro_furo: 1.0
+
+kicad:
+  referencia: "J?"
+  valor: "Conn_01x03"
+  descricao: "Conector 1 fileira 3 pinos 2.54mm PTH"
+  tags: "conector header pth 2.54mm"
+  modelo_3d: "Conn_01x03.step"
+
+margens:
+  courtyard: 0.5
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "Pin_1"
+  2: "Pin_2"
+  3: "Pin_3"

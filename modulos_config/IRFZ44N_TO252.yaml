@@ -1,0 +1,81 @@
+# =============================================================================
+# IRFZ44N — MOSFET N-Channel 55V 49A em DPAK (TO-252)
+# MODO CUSTOM: posicoes absolutas de cada pad
+# Datasheet: https://www.infineon.com/dgdl/irfz44n.pdf
+#
+# Dimensoes DPAK (TO-252AA) conforme IPC-7351B:
+#   Corpo: 6.5 x 6.1 mm
+#   2 leads frontais: Gate(1), Source(2) pitch 2.28mm
+#   1 thermal tab traseiro: Drain(3) 5.4x6.0mm
+# =============================================================================
+
+nome: "IRFZ44N_TO252"
+padrao: "custom"
+fabricante: "Infineon"
+mpn: "IRFZ44NPBF"
+datasheet_url: "https://www.infineon.com/dgdl/irfz44n.pdf"
+simbolo: "mosfet_n"
+tipo_3d: "dpak"
+
+pads:
+  - numero: 1
+    nome: "G"
+    tipo_eletrico: "input"
+    x: -1.14
+    y: 2.5
+    largura: 1.0
+    altura: 1.2
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 2
+    nome: "S"
+    tipo_eletrico: "passive"
+    x: 1.14
+    y: 2.5
+    largura: 1.0
+    altura: 1.2
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 3
+    nome: "D"
+    tipo_eletrico: "passive"
+    x: 0.0
+    y: -1.6
+    largura: 5.4
+    altura: 6.0
+    formato: "retangulo"
+    montagem: "smd"
+
+corpo:
+  largura: 6.5
+  comprimento: 6.1
+  formato: retangulo
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "G"
+  2: "S"
+  3: "D"
+
+pin_types:
+  1: "input"
+  2: "passive"
+  3: "passive"
+
+kicad:
+  referencia: "Q?"
+  valor: "IRFZ44N"
+  descricao: "MOSFET N-Channel 55V 49A, DPAK (TO-252), RDS(on)=17.5mOhm"
+  tags: "mosfet n-channel irfz44n dpak to-252 power 55v 49a"
+  modelo_3d: "IRFZ44N_TO252.step"
+
+eletrico:
+  tensao_maxima: "55V"
+  potencia: "110W"
+  polaridade: true

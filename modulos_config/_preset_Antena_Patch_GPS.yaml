@@ -1,0 +1,102 @@
+# =============================================================================
+# PRESET: Antena Patch Cerâmica GPS/GNSS — padrao: custom
+# =============================================================================
+# Antena patch cerâmica para recepção de sinais GPS/GNSS/Galileo.
+# Corpo cerâmico quadrado com 1 pad de sinal + 4 pads de GND nos cantos.
+# Exemplo baseado em antenas tipo Taoglas CGGP.25.4.A.02
+# Dimensões IPC/datasheet: 25x25x4mm
+#
+# Para usar: duplique este arquivo, renomeie e ajuste as dimensões.
+# =============================================================================
+
+nome: "Antena_Patch_GPS_25x25"
+padrao: custom
+simbolo: "antena"           # símbolo esquemático: antena (FEED + GND)
+
+fabricante: "Taoglas"
+mpn: "CGGP.25.4.A.02"
+datasheet_url: "https://www.taoglas.com/datasheets/CGGP.25.4.A.02.pdf"
+
+pads:
+  # Pad de alimentação/sinal central (parte inferior)
+  - numero: 1
+    nome: "FEED"
+    tipo_eletrico: "passive"
+    x: 0.0
+    y: 6.0
+    largura: 1.5
+    altura: 1.5
+    formato: "retangulo"
+    montagem: "smd"
+
+  # 4 pads de GND nos cantos (aterramento da antena)
+  - numero: 2
+    nome: "GND"
+    tipo_eletrico: "power_in"
+    x: -11.0
+    y: -11.0
+    largura: 2.0
+    altura: 2.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 3
+    nome: "GND"
+    tipo_eletrico: "power_in"
+    x: 11.0
+    y: -11.0
+    largura: 2.0
+    altura: 2.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 4
+    nome: "GND"
+    tipo_eletrico: "power_in"
+    x: 11.0
+    y: 11.0
+    largura: 2.0
+    altura: 2.0
+    formato: "retangulo"
+    montagem: "smd"
+
+  - numero: 5
+    nome: "GND"
+    tipo_eletrico: "power_in"
+    x: -11.0
+    y: 11.0
+    largura: 2.0
+    altura: 2.0
+    formato: "retangulo"
+    montagem: "smd"
+
+corpo:
+  largura: 25.0
+  comprimento: 25.0
+  formato: retangulo
+
+pin_names:
+  "1": "FEED"
+  "2": "GND"
+  "3": "GND"
+  "4": "GND"
+  "5": "GND"
+
+pin_types:
+  "1": "passive"
+  "2": "power_in"
+  "3": "power_in"
+  "4": "power_in"
+  "5": "power_in"
+
+kicad:
+  referencia: "ANT?"
+  valor: "Antena_GPS_25x25"
+  descricao: "Antena patch cerâmica GPS/GNSS 25x25mm, SMD"
+  tags: "antena gps gnss patch ceramica smd"
+  modelo_3d: "Antena_Patch_GPS_25x25.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10

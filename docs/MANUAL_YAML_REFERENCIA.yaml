@@ -1,0 +1,975 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MANUAL DE REFERÊNCIA YAML — Plataforma CAM-CAD Data Frontier
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Este documento serve como:
+#   1. Manual descritivo para HUMANOS (engenheiros de PCB, desenvolvedores)
+#   2. Prompt completo para AGENTES DE IA (LLMs, copilots, geradores automáticos)
+#
+# Versão: 2.0
+# Última atualização: 2026-06-15
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 1: VISÃO GERAL DO SISTEMA
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# A Plataforma CAM-CAD Data Frontier gera automaticamente, a partir de um 
+# único arquivo YAML, os seguintes artefatos para o KiCad:
+#
+#   1. Footprint 2D (.kicad_mod) — pads, silkscreen, courtyard, fab layer
+#   2. Símbolo esquemático (.kicad_sym) — pinos, corpo, propriedades
+#   3. Modelo 3D (.step) — corpo sólido via CadQuery
+#   4. Biblioteca (.kicad_sym + .pretty/) — exportação batch
+#
+# O sistema possui DOIS motores de geração de footprint:
+#
+#   A) MOTOR PRESET (tipo:) — 10 tipos pré-programados, rápido e direto
+#   B) MOTOR UNIVERSAL (padrao:) — 6 padrões paramétricos, flexível
+#
+# Se o YAML contiver o campo "padrao:", usa o Motor Universal.
+# Se contiver "tipo:", usa o Motor Preset.
+# Se contiver ambos, "padrao:" tem prioridade.
+#
+#
+# ─── Fluxo de decisão ───
+#
+#   ┌─────────────────────┐
+#   │  Novo componente?    │
+#   └────────┬────────────┘
+#            │
+#   ┌────────▼────────────┐     SIM     ┌──────────────────────┐
+#   │ Existe preset YAML? │────────────►│ Duplicar preset,     │
+#   │ (_preset_*.yaml)    │             │ alterar nome/valores  │
+#   └────────┬────────────┘             └──────────────────────┘
+#            │ NÃO
+#   ┌────────▼────────────┐     SIM     ┌──────────────────────┐
+#   │ Encaixe de padrão?  │────────────►│ Usar padrao: + dados │
+#   │ (axial/dual/quad)   │             │ paramétricos          │
+#   └────────┬────────────┘             └──────────────────────┘
+#            │ NÃO
+#   ┌────────▼────────────┐             ┌──────────────────────┐
+#   │ Formato exótico?    │────────────►│ Usar padrao: custom  │
+#   │ (antena, bateria)   │             │ + pads individuais   │
+#   └─────────────────────┘             └──────────────────────┘
+#
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 2: ESTRUTURA BÁSICA DO YAML
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Todo YAML de componente segue esta estrutura:
+
+# ─── Campos obrigatórios (TODOS os componentes) ─────────────────────────────
+
+nome: "NomeSemEspacos"          # OBRIGATÓRIO. Nome único do componente.
+                                 # Sem espaços — use _ ou CamelCase.
+                                 # Ex: "NE555_DIP8", "Resistor_470R"
+
+# ─── Escolha UM dos dois campos abaixo ──────────────────────────────────────
+
+tipo: "ci_dip"                   # Motor Preset — escolher entre 10 tipos
+# OU
+padrao: "dual_pth"               # Motor Universal — escolher entre 6 padrões
+
+# ─── Campos opcionais de identificação ──────────────────────────────────────
+
+fabricante: "Texas Instruments"  # Nome do fabricante
+mpn: "NE555P"                    # Código do fabricante (Manufacturer Part Number)
+datasheet_url: "https://..."     # URL do datasheet
+# simbolo: "ci"                  # Template de símbolo esquemático (ver SEÇÃO 6)
+#                                # Se omitido, auto-detecta pelo tipo/padrao e nº de pinos
+
+# ─── Seção kicad (obrigatória) ──────────────────────────────────────────────
+
+kicad:
+  referencia: "U?"               # Prefixo de referência no esquemático
+                                 # R? = Resistor   D? = Diodo/LED    U? = CI
+                                 # Q? = Transistor  C? = Capacitor   Y? = Cristal
+                                 # J? = Conector   ANT? = Antena     BT? = Bateria
+                                 # L? = Indutor    F? = Fusível
+  valor: "NE555"                 # Texto mostrado no esquemático
+  descricao: "Timer NE555 DIP-8" # Descrição para a biblioteca
+  tags: "timer 555 dip pth"      # Tags para busca (separadas por espaço)
+  modelo_3d: "NE555_DIP8.step"   # Nome do arquivo 3D gerado
+  footprint_lib: "DataFrontier:NE555_DIP8"  # Referência da biblioteca (opcional)
+
+# ─── Seção margens (com padrões sensatos) ───────────────────────────────────
+
+margens:
+  courtyard: 0.50                # Margem de courtyard em mm (IPC-7351: 0.25-0.50)
+                                 # SMD: usar 0.25  |  PTH: usar 0.50
+  silkscreen: 0.12               # Largura de linha do silkscreen (F.SilkS)
+  fab_line: 0.10                 # Largura de linha da camada fabricação (F.Fab)
+
+# ─── Seção elétrica (opcional, metadados) ───────────────────────────────────
+
+eletrico:
+  tolerancia: "5%"               # Tolerância (resistor/capacitor)
+  potencia: "0.25W"              # Potência máxima
+  tensao_maxima: "50V"           # Tensão máxima
+  polaridade: true               # true = polarizado, false = não polarizado
+
+# ─── Seção de nomes e tipos de pinos (opcional, melhora o símbolo) ──────────
+
+pin_names:
+  "1": "GND"                     # Mapeia número do pino → nome funcional
+  "2": "TRIG"
+  "3": "OUT"
+
+pin_types:
+  "1": "power_in"                # Mapeia número do pino → tipo elétrico
+  "2": "input"
+  "3": "output"
+
+# ─── Tipos elétricos válidos para pin_types ─────────────────────────────────
+#
+#   input          → Entrada digital/analógica
+#   output         → Saída push-pull
+#   bidirectional  → Bidirecional (ex: I2C SDA, barramento de dados)
+#   power_in       → Alimentação de entrada (VCC, GND)
+#   power_out      → Alimentação de saída (regulador)
+#   passive        → Passivo (resistor, capacitor, cristal, antena)
+#   open_collector → Saída coletor/dreno aberto
+#   tri_state      → Saída tri-state
+#   unspecified    → Não especificado
+#
+# Se pin_types não for fornecido:
+#   - Componentes passivos (resistor, diodo, cap, cristal, LED): "passive"
+#   - CIs (ci_dip, ci_soic, castellated): "bidirectional"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 3: MOTOR PRESET (tipo:) — 10 Tipos Pré-Programados
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Use "tipo:" quando o componente se encaixa perfeitamente em um dos 10
+# formatos abaixo. É mais rápido e requer menos campos no YAML.
+#
+# ╔══════════════════╦════════════════════════════╦══════════════╗
+# ║ tipo:            ║ Uso                        ║ Referência   ║
+# ╠══════════════════╬════════════════════════════╬══════════════╣
+# ║ resistor_pth     ║ Resistor axial THT         ║ R?           ║
+# ║ diodo_pth        ║ Diodo axial (DO-35/DO-41)  ║ D?           ║
+# ║ led_pth          ║ LED THT 5mm                ║ D?           ║
+# ║ capacitor_pth    ║ Capacitor eletrolítico     ║ C?           ║
+# ║ transistor_to92  ║ Transistor TO-92           ║ Q?           ║
+# ║ crystal_hc49     ║ Cristal HC-49              ║ Y?           ║
+# ║ conector_pth     ║ Pin header 1 fileira       ║ J?           ║
+# ║ ci_dip           ║ CI DIP through-hole        ║ U?           ║
+# ║ ci_soic          ║ CI SOIC SMD                ║ U?           ║
+# ║ castellated      ║ Módulo castellated 4 lados ║ U?           ║
+# ╚══════════════════╩════════════════════════════╩══════════════╝
+
+
+# ─── 3.1 resistor_pth ───────────────────────────────────────────────────────
+
+# nome: "Resistor_470R"
+# tipo: resistor_pth
+# pinos:
+#   espacamento: 10.16           # Distância entre centros dos pads (mm)
+#   diametro_pad: 1.6            # Diâmetro externo do pad de cobre (mm)
+#   diametro_furo: 0.8           # Diâmetro do furo (drill) (mm)
+# corpo:
+#   comprimento: 6.5             # Comprimento do corpo do resistor (mm)
+#   diametro: 2.5                # Diâmetro/altura do corpo (mm)
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "R?", valor: "470R", descricao: "...", tags: "...", modelo_3d: "..."}
+
+
+# ─── 3.2 diodo_pth ──────────────────────────────────────────────────────────
+
+# nome: "1N4007_DO41"
+# tipo: diodo_pth
+# pinos:
+#   espacamento: 10.16           # Centro-a-centro dos pads
+#   diametro_pad: 1.8
+#   diametro_furo: 0.9
+# corpo:
+#   comprimento: 5.0             # Corpo do diodo (sem fios)
+#   diametro: 2.7                # Diâmetro do corpo
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "D?", ...}
+
+
+# ─── 3.3 led_pth ────────────────────────────────────────────────────────────
+
+# nome: "LED_5mm_Verde"
+# tipo: led_pth
+# pinos:
+#   espacamento: 2.54
+#   diametro_pad: 1.8
+#   diametro_furo: 0.9
+# corpo:
+#   diametro: 5.0                # Diâmetro da lente
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "D?", ...}
+
+
+# ─── 3.4 capacitor_pth ──────────────────────────────────────────────────────
+
+# nome: "Cap_100uF_16V"
+# tipo: capacitor_pth
+# pinos:
+#   espacamento: 2.5
+#   diametro_pad: 1.6
+#   diametro_furo: 0.8
+# corpo:
+#   diametro: 6.3                # Diâmetro do corpo cilíndrico
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "C?", ...}
+
+
+# ─── 3.5 transistor_to92 ────────────────────────────────────────────────────
+
+# nome: "BC547_TO92"
+# tipo: transistor_to92
+# pinos:
+#   pitch: 1.27                  # Espaçamento entre pinos adjacentes
+#   diametro_pad: 1.6
+#   diametro_furo: 0.8
+#   pinagem: "CBE"               # Ordem dos pinos: C=Coletor B=Base E=Emissor
+#                                # Alternativas: "EBC", "BCE", "ECB"
+# corpo:
+#   diametro: 5.0                # Diâmetro do corpo D-shape
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "Q?", ...}
+
+
+# ─── 3.6 crystal_hc49 ───────────────────────────────────────────────────────
+
+# nome: "Crystal_16MHz_HC49"
+# tipo: crystal_hc49
+# pinos:
+#   espacamento: 4.88
+#   diametro_pad: 1.6
+#   diametro_furo: 0.8
+# corpo:
+#   largura: 11.05               # Largura do invólucro metálico
+#   comprimento: 4.65            # Altura do invólucro
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "Y?", ...}
+
+
+# ─── 3.7 conector_pth ───────────────────────────────────────────────────────
+
+# nome: "Header_1x6"
+# tipo: conector_pth
+# pinos:
+#   total: 6                     # Número total de pinos
+#   pitch: 2.54                  # Espaçamento entre pinos (2.54 = 100mil)
+#   diametro_pad: 1.7
+#   diametro_furo: 1.0
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "J?", ...}
+# pin_names: {"1": "VCC", "2": "GND", "3": "SDA", "4": "SCL", "5": "INT", "6": "RST"}
+
+
+# ─── 3.8 ci_dip ─────────────────────────────────────────────────────────────
+
+# nome: "NE555_DIP8"
+# tipo: ci_dip
+# pinos:
+#   total: 8                     # Número total de pinos (deve ser par)
+#   pitch: 2.54                  # Espaçamento entre pinos na fileira
+#   diametro_pad: 1.6
+#   diametro_furo: 0.8
+# corpo:
+#   largura: 6.35                # Largura do corpo (entre as fileiras)
+#   comprimento: 9.9             # Comprimento total
+#   afastamento_colunas: 7.62    # Centro-a-centro entre as 2 fileiras de pads
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+# pin_names: {"1": "GND", "2": "TRIG", "3": "OUT", "4": "RESET",
+#             "5": "CTRL", "6": "THRES", "7": "DISCH", "8": "VCC"}
+# pin_types: {"1": "power_in", "2": "input", "3": "output", "4": "input",
+#             "5": "input", "6": "input", "7": "open_collector", "8": "power_in"}
+
+
+# ─── 3.9 ci_soic ────────────────────────────────────────────────────────────
+
+# nome: "NE555_SOIC8"
+# tipo: ci_soic
+# pinos:
+#   total: 8
+#   pitch: 1.27
+#   tamanho_pad:
+#     largura: 0.60              # Largura do pad SMD (eixo X, direção do pad)
+#     altura: 1.55               # Altura do pad SMD (eixo Y, comprimento do pad)
+# corpo:
+#   largura: 3.9                 # Largura do corpo plástico
+#   comprimento: 4.9             # Comprimento do corpo
+#   afastamento_colunas: 5.4     # Centro-a-centro entre colunas de pads
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+
+
+# ─── 3.10 castellated ───────────────────────────────────────────────────────
+
+# nome: "ModuloLTE_4Lados"
+# tipo: castellated
+# pcb:                           # Dimensões da placa do módulo (não "corpo")
+#   largura: 20.0
+#   altura: 15.0
+# pinos:
+#   por_lado: 8                  # Pinos por lado (igual nos 4 lados)
+#   # OU especificar cada lado:
+#   lados:
+#     esquerdo: 10
+#     base: 5
+#     direito: 10
+#     topo: 5
+#   pitch: 1.0
+#   tamanho_pad:
+#     largura: 0.8
+#     altura: 0.5
+#   overrides:                   # Pads com tamanho diferente (opcional)
+#     "1": {largura: 1.2, altura: 0.8}
+#     "15": {largura: 1.2, altura: 0.8}
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 4: MOTOR UNIVERSAL (padrao:) — 6 Padrões Paramétricos
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Use "padrao:" quando precisar de mais flexibilidade ou quando o componente
+# não se encaixa nos presets. O motor universal calcula posições de pads
+# automaticamente baseado no padrão escolhido.
+#
+# ╔══════════════╦════════════════════════════════╦════════════════════════════╗
+# ║ padrao:      ║ Distribuição dos Pads          ║ Componentes Cobertos       ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ axial_pth    ║ 2 pads em linha reta           ║ Resistor, Diodo, LED,     ║
+# ║              ║  ●───corpo───●                 ║ Cristal, Cap axial        ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ radial_pth   ║ 3+ pads em cluster             ║ TO-92, TO-220, TO-247     ║
+# ║              ║    ● ● ●                       ║                            ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ dual_pth     ║ 2 fileiras paralelas PTH       ║ DIP-8/14/16/28            ║
+# ║              ║  ●      ●                      ║                            ║
+# ║              ║  ●      ●                      ║                            ║
+# ║              ║  ●      ●                      ║                            ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ dual_smd     ║ 2 fileiras paralelas SMD       ║ SOIC, SSOP, SOT-23,      ║
+# ║              ║  ▪      ▪                      ║ 0402-1206, SOD-123, SMA   ║
+# ║              ║  ▪      ▪                      ║                            ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ quad_smd     ║ 4 lados de pads SMD            ║ QFP, QFN, TQFP,          ║
+# ║              ║    ▪ ▪ ▪                       ║ Castellated               ║
+# ║              ║  ▪       ▪                     ║                            ║
+# ║              ║    ▪ ▪ ▪                       ║                            ║
+# ╠══════════════╬════════════════════════════════╬════════════════════════════╣
+# ║ custom       ║ Pads em posição arbitrária     ║ Antena, Bateria,          ║
+# ║              ║  ▪     ●                       ║ Supercapacitor, Módulo RF,║
+# ║              ║       ▪                        ║ Qualquer componente       ║
+# ╚══════════════╩════════════════════════════════╩════════════════════════════╝
+
+
+# ─── 4.1 axial_pth ──────────────────────────────────────────────────────────
+
+# padrao: axial_pth
+# nome: "Resistor_1K"
+# pinos:
+#   espacamento: 10.16           # OBRIGATÓRIO. Centro-a-centro (mm)
+#   diametro_pad: 1.6            # OBRIGATÓRIO. Diâmetro do pad
+#   diametro_furo: 0.8           # OBRIGATÓRIO. Diâmetro do furo
+# corpo:
+#   formato: retangulo           # "retangulo" (padrão) ou "cilindro"
+#   comprimento: 6.5             # Comprimento do corpo (eixo X)
+#   diametro: 2.5                # Diâmetro/altura (eixo Y)
+#   # Para retangulo, pode usar largura/altura em vez de comprimento/diametro
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "R?", ...}
+
+
+# ─── 4.2 radial_pth ─────────────────────────────────────────────────────────
+
+# padrao: radial_pth
+# nome: "TO220_LM7805"
+# pinos:
+#   total: 3                     # Padrão: 3 pinos
+#   pitch: 2.54                  # OBRIGATÓRIO. Espaçamento entre pinos
+#   diametro_pad: 1.8            # OBRIGATÓRIO
+#   diametro_furo: 1.0           # OBRIGATÓRIO
+# corpo:
+#   formato: dshape              # "dshape" (TO-92), "retangulo" (TO-220), "cilindro"
+#   diametro: 5.0                # Para dshape/cilindro
+#   largura: 10.0                # Para retangulo
+#   comprimento: 4.5             # Para retangulo
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "Q?", ...}
+
+
+# ─── 4.3 dual_pth ───────────────────────────────────────────────────────────
+
+# padrao: dual_pth
+# nome: "DIP_28"
+# pinos:
+#   total: 28                    # OBRIGATÓRIO. Deve ser par
+#   pitch: 2.54                  # OBRIGATÓRIO
+#   diametro_pad: 1.6            # OBRIGATÓRIO
+#   diametro_furo: 0.8           # OBRIGATÓRIO
+# corpo:
+#   largura: 6.35                # OBRIGATÓRIO. Largura do corpo
+#   comprimento: 35.56           # OBRIGATÓRIO. Comprimento total
+#   afastamento_colunas: 7.62    # OBRIGATÓRIO. Centro-a-centro entre fileiras
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+
+
+# ─── 4.4 dual_smd ───────────────────────────────────────────────────────────
+
+# padrao: dual_smd
+# nome: "SOIC_8"
+# pinos:
+#   total: 8                     # OBRIGATÓRIO
+#   pitch: 1.27                  # OBRIGATÓRIO. Espaçamento entre pads
+#   tamanho_pad:                 # OBRIGATÓRIO
+#     largura: 0.60              #   Dimensão X do pad
+#     altura: 1.55               #   Dimensão Y do pad
+#   distribuicao: [4, 4]         # Opcional. [pads_esquerda, pads_direita]
+#                                # Padrão: total/2 por lado
+#                                # SOT-23:  [2, 1]
+#                                # SOT-23-5: [3, 2]
+#                                # SOT-223: [3, 1]
+#   thermal_pad:                 # Opcional. Pad térmico central
+#     largura: 2.5               #   Largura do thermal pad
+#     altura: 2.5                #   Altura do thermal pad
+#     paste_ratio: 0.5           #   Porcentagem de pasta de solda (0.0-1.0)
+# corpo:
+#   largura: 3.9                 # OBRIGATÓRIO. Largura do corpo plástico
+#   comprimento: 4.9             # OBRIGATÓRIO. Comprimento do corpo
+#   afastamento_colunas: 5.4     # OBRIGATÓRIO. Centro-a-centro entre colunas
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+#
+# Para componentes 2-pad (chip 0805, SOD-123, SMA):
+# pinos:
+#   total: 2
+#   pitch: 0                     # Não se aplica para 2 pads
+#   distribuicao: [1, 1]         # 1 pad de cada lado
+#   tamanho_pad: {largura: 1.0, altura: 1.1}
+# corpo:
+#   afastamento_colunas: 2.0     # Centro-a-centro dos 2 pads
+
+
+# ─── 4.5 quad_smd ───────────────────────────────────────────────────────────
+
+# padrao: quad_smd
+# nome: "QFN_16_4x4"
+# pinos:
+#   pitch: 0.65                  # OBRIGATÓRIO
+#   tamanho_pad:                 # OBRIGATÓRIO
+#     largura: 0.8
+#     altura: 0.3
+#   lados:                       # Opção A: especificar cada lado
+#     esquerdo: 4
+#     base: 4
+#     direito: 4
+#     topo: 4
+#   # OU
+#   por_lado: 4                  # Opção B: mesmo número nos 4 lados
+#   # OU
+#   total: 16                    # Opção C: total (dividido em 4)
+#   overrides:                   # Opcional: pads com tamanho diferente
+#     "1": {largura: 1.2, altura: 0.5}
+#   thermal_pad:                 # Opcional: pad térmico central (QFN)
+#     largura: 2.5
+#     altura: 2.5
+#     paste_ratio: 0.5
+# corpo:
+#   largura: 4.0                 # Largura do corpo
+#   comprimento: 4.0             # Comprimento (ou use "altura")
+# # OU para castellated, use pcb:
+# pcb:
+#   largura: 20.0                # Dimensões da placa do módulo
+#   altura: 15.0
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "U?", ...}
+
+
+# ─── 4.6 custom ─────────────────────────────────────────────────────────────
+#
+# Para componentes com pads em posições totalmente arbitrárias.
+# Cada pad é definido individualmente com posição, tamanho e formato.
+# Cobre 100% dos componentes possíveis.
+
+# padrao: custom
+# nome: "Antena_Patch_GPS"
+# pads:                          # OBRIGATÓRIO. Lista de pads
+#   - numero: 1                  # Número do pad (auto-incrementa se omitido)
+#     nome: "SIGNAL"             # Nome funcional (opcional)
+#     tipo_eletrico: "passive"   # Tipo elétrico (opcional)
+#     x: 0.0                     # Posição X em mm (0,0 = centro)
+#     y: 6.0                     # Posição Y em mm
+#     largura: 1.5               # Dimensão X do pad (mm)
+#     altura: 1.5                # Dimensão Y do pad (mm)
+#     formato: "retangulo"       # "retangulo"|"circulo"|"oval"|"roundrect"
+#     montagem: "smd"            # "smd" ou "pth"
+#     furo: 0.0                  # Diâmetro do furo (só para pth, 0 = smd)
+#     roundrect_ratio: 0.25      # Raio das bordas (só para roundrect, 0.0-0.5)
+#
+#   - numero: 2
+#     nome: "GND"
+#     tipo_eletrico: "power_in"
+#     x: -10.0
+#     y: -10.0
+#     largura: 2.0
+#     altura: 2.0
+#     formato: "retangulo"
+#     montagem: "smd"
+#
+# corpo:
+#   largura: 25.0
+#   comprimento: 25.0
+#   formato: retangulo           # "retangulo", "cilindro"
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad: {referencia: "ANT?", ...}
+#
+# ─── DICA: Pads mistos (SMD + PTH no mesmo componente) ──────────────────
+# O padrão "custom" aceita mistura de pads SMD e PTH.
+# O atributo do footprint é determinado automaticamente:
+#   - Só SMD → attr: smd
+#   - Só PTH → attr: through_hole
+#   - Misto  → attr: smd
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 5: PRESETS DISPONÍVEIS (_preset_*.yaml)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Para criar um novo componente rapidamente:
+#   1. Encontre o preset mais parecido na tabela abaixo
+#   2. Duplique o arquivo _preset_*.yaml
+#   3. Renomeie para o nome do seu componente (ex: AMS1117_SOT223.yaml)
+#   4. Altere "nome:", "kicad.valor:", e as dimensões específicas
+#   5. Pressione F5 para gerar
+#
+# ╔════════════════════════════╦═════════════╦════════════════════════════════╗
+# ║ Preset                     ║ Motor       ║ Cobertura                      ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ PASSIVOS SMD                                                             ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_SMD_0402           ║ dual_smd    ║ Chip R/C 0402 (1005 metric)   ║
+# ║ _preset_SMD_0603           ║ dual_smd    ║ Chip R/C 0603 (1608 metric)   ║
+# ║ _preset_SMD_0805           ║ dual_smd    ║ Chip R/C 0805 (2012 metric)   ║
+# ║ _preset_SMD_1206           ║ dual_smd    ║ Chip R/C 1206 (3216 metric)   ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ DIODOS SMD                                                               ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_SOD123             ║ dual_smd    ║ Diodo sinal SOD-123           ║
+# ║ _preset_SMA_DO214AC        ║ dual_smd    ║ Diodo potência SMA            ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ TRANSISTORES / REGULADORES                                               ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_SOT23_3            ║ dual_smd    ║ SOT-23 3pin (BJT, MOSFET)    ║
+# ║ _preset_SOT23_5            ║ dual_smd    ║ SOT-23-5 (op-amp, LDO)       ║
+# ║ _preset_SOT223             ║ dual_smd    ║ SOT-223 (reguladores)        ║
+# ║ _preset_DPAK_TO252         ║ dual_smd    ║ DPAK (potência SMD)          ║
+# ║ _preset_TO220              ║ radial_pth  ║ TO-220 (potência PTH)        ║
+# ║ _preset_TO247              ║ radial_pth  ║ TO-247 (alta potência PTH)   ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ CIs SMD                                                                  ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_SSOP20             ║ dual_smd    ║ SSOP-20                       ║
+# ║ _preset_QFN16_4x4          ║ quad_smd    ║ QFN-16 4x4mm                  ║
+# ║ _preset_TQFP44             ║ quad_smd    ║ TQFP-44 10x10mm              ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ CIs PTH                                                                  ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_DIP14              ║ ci_dip      ║ DIP-14 (74xx lógica)         ║
+# ║ _preset_DIP16              ║ ci_dip      ║ DIP-16                        ║
+# ║ _preset_DIP28              ║ ci_dip      ║ DIP-28 (ATmega328P)          ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ CONECTORES                                                               ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_conector_1x6       ║ conector_pth║ Pin header 1x6               ║
+# ║ _preset_conector_2x5       ║ ci_dip      ║ Box header 2x5 IDC           ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ EXÓTICOS (custom)                                                        ║
+# ╠════════════════════════════╬═════════════╬════════════════════════════════╣
+# ║ _preset_Antena_Patch_GPS   ║ custom      ║ Antena patch cerâmica GPS    ║
+# ║ _preset_Battery_CR2032     ║ custom      ║ Suporte bateria coin cell    ║
+# ║ _preset_Supercap_CoinCell  ║ custom      ║ Supercapacitor coin cell     ║
+# ╚════════════════════════════╩═════════════╩════════════════════════════════╝
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 6: CAMPO simbolo: — TEMPLATES DE SÍMBOLO ESQUEMÁTICO
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# O campo "simbolo:" define o visual do símbolo esquemático (.kicad_sym).
+# É um campo OPCIONAL de nível raiz (tipo string). Se omitido, o sistema
+# auto-detecta o template pelo "tipo:", "padrao:" e número de pinos.
+#
+# ─── Valores disponíveis ────────────────────────────────────────────────
+#
+# ╔══════════════════╦════════════════════════════════╦═══════════════════╗
+# ║ simbolo:         ║ Visual no esquemático          ║ Pinos             ║
+# ╠══════════════════╬════════════════════════════════╬═══════════════════╣
+# ║ resistor         ║ Retângulo horizontal passivo   ║ 2                 ║
+# ║ capacitor        ║ Duas placas paralelas          ║ 2                 ║
+# ║ diodo            ║ Triângulo + barra catodo       ║ 2 (A/K)           ║
+# ║ diodo_zener      ║ Diodo + barra Z                ║ 2 (A/K)           ║
+# ║ diodo_schottky   ║ Diodo + barra S                ║ 2 (A/K)           ║
+# ║ led              ║ Diodo + setas de luz           ║ 2 (A/K)           ║
+# ║ transistor       ║ NPN BJT com círculo            ║ 3 (B/C/E)         ║
+# ║ mosfet_n         ║ MOSFET canal N                 ║ 3 (G/D/S)         ║
+# ║ mosfet_p         ║ MOSFET canal P                 ║ 3 (G/D/S)         ║
+# ║ regulador        ║ Retângulo IN/GND/OUT           ║ 3                 ║
+# ║ opamp            ║ Triângulo op-amp               ║ 3-5               ║
+# ║ indutor          ║ Bobina (4 arcos)               ║ 2                 ║
+# ║ fusivel          ║ Retângulo com fio              ║ 2                 ║
+# ║ bateria          ║ Placas +/-                     ║ 2                 ║
+# ║ antena           ║ V invertido                    ║ 1                 ║
+# ║ crystal          ║ Cristal (barras + retângulo)   ║ 2                 ║
+# ║ conector         ║ Retângulo com pinos na esquerda║ N                 ║
+# ║ ci               ║ CI genérico (2 lados)          ║ N                 ║
+# ║ bga              ║ CI quadrado (4 lados)          ║ N                 ║
+# ╚══════════════════╩════════════════════════════════╩═══════════════════╝
+#
+# ─── Auto-detecção (quando simbolo: é omitido) ─────────────────────────
+#
+#   1 pino          → antena
+#   2 pinos         → resistor (passivo genérico)
+#   3 pinos         → regulador
+#   4–40 pinos      → ci (CI genérico, 2 lados)
+#   40+ pinos       → bga (CI quadrado, 4 lados)
+#
+# NOTA: A auto-detecção é baseada apenas no número de pinos.
+# Para garantir o visual correto, SEMPRE especifique simbolo: para
+# componentes como diodos, LEDs, transistores e MOSFETs, que de outra
+# forma seriam mapeados para "resistor" (2 pinos) ou "regulador" (3 pinos).
+#
+# ─── Exemplos de uso ───────────────────────────────────────────────────
+#
+# Exemplo 1: Diodo com símbolo explícito
+# nome: "1N4007_DO41"
+# tipo: diodo_pth
+# simbolo: diodo                 # ← garante triângulo + barra
+# ...
+#
+# Exemplo 2: LED com símbolo explícito
+# nome: "LED_5mm_Verde"
+# tipo: led_pth
+# simbolo: led                   # ← garante diodo + setas de luz
+# ...
+#
+# Exemplo 3: MOSFET N-channel
+# nome: "IRLZ44N_TO220"
+# padrao: radial_pth
+# simbolo: mosfet_n              # ← garante símbolo MOSFET canal N
+# ...
+#
+# Exemplo 4: Auto-detectado (CI genérico)
+# nome: "ATmega328P_DIP28"
+# tipo: ci_dip
+# # simbolo: omitido → 28 pinos → auto-detecta "ci" (2 lados) ✓
+# ...
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 7: CAMPOS DIMENSIONAIS — REFERÊNCIA RÁPIDA
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ─── Regras dimensionais IPC-7351B ──────────────────────────────────────
+#
+#   Annular Ring mínimo (IPC Classe 2): 0.15mm
+#     → diametro_pad ≥ diametro_furo + 0.30mm
+#
+#   Courtyard mínimo:
+#     → SMD: 0.25mm   (componentes de montagem superficial)
+#     → PTH: 0.50mm   (componentes through-hole)
+#
+#   Silkscreen:
+#     → Largura de linha: 0.12mm (padrão KiCad)
+#     → Não pode sobrepor pads
+#
+#   Fab layer:
+#     → Largura de linha: 0.10mm
+#     → Contorno real do corpo do componente
+#
+# ─── Unidades ────────────────────────────────────────────────────────────
+#
+#   TODAS as dimensões são em milímetros (mm).
+#   1 mil = 0.0254mm  |  100mil = 2.54mm
+#
+#   Conversões comuns:
+#     2.54mm  = 100mil (pitch DIP, headers)
+#     1.27mm  = 50mil  (pitch SOIC)
+#     0.65mm  = ~25mil (pitch SSOP, QFN, TQFP)
+#     0.50mm  = ~20mil (pitch QFP fino)
+#     0.40mm  = ~16mil (pitch QFN fino)
+#
+# ─── Coordenadas ─────────────────────────────────────────────────────────
+#
+#   Origem (0,0) = centro do componente
+#   X positivo = direita
+#   Y positivo = baixo (convenção KiCad footprint)
+#   Pino 1 sempre no canto superior esquerdo ou lado esquerdo
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 8: EXEMPLOS COMPLETOS
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─── Exemplo 1: Resistor SMD 0805 (Motor Universal) ─────────────────────
+
+# nome: "R_100R_0805"
+# padrao: dual_smd
+# fabricante: "Yageo"
+# mpn: "RC0805FR-07100RL"
+# datasheet_url: "https://www.yageo.com/..."
+# eletrico:
+#   tolerancia: "1%"
+#   potencia: "0.125W"
+#   tensao_maxima: "150V"
+# pinos:
+#   total: 2
+#   pitch: 0
+#   distribuicao: [1, 1]
+#   tamanho_pad:
+#     largura: 1.0
+#     altura: 1.1
+# corpo:
+#   largura: 2.0
+#   comprimento: 1.25
+#   afastamento_colunas: 2.0
+#   formato: retangulo
+# pin_names: {"1": "1", "2": "2"}
+# pin_types: {"1": "passive", "2": "passive"}
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad:
+#   referencia: "R?"
+#   valor: "100R"
+#   descricao: "Resistor SMD 100 Ohm 1% 0805"
+#   tags: "resistor smd 0805 100 ohm"
+#   modelo_3d: "R_100R_0805.step"
+
+
+# ─── Exemplo 2: ATmega328P DIP-28 (Motor Preset) ────────────────────────
+
+# nome: "ATmega328P_DIP28"
+# tipo: ci_dip
+# fabricante: "Microchip"
+# mpn: "ATMEGA328P-PU"
+# datasheet_url: "https://www.microchip.com/..."
+# pinos:
+#   total: 28
+#   pitch: 2.54
+#   diametro_pad: 1.6
+#   diametro_furo: 0.8
+# corpo:
+#   largura: 6.35
+#   comprimento: 35.56
+#   afastamento_colunas: 7.62
+# pin_names:
+#   "1": "PC6/RESET"
+#   "2": "PD0/RXD"
+#   "3": "PD1/TXD"
+#   "7": "VCC"
+#   "8": "GND"
+#   "9": "PB6/XTAL1"
+#   "10": "PB7/XTAL2"
+#   "14": "PB0"
+#   "20": "AVCC"
+#   "21": "AREF"
+#   "22": "GND"
+#   "28": "PC5/ADC5/SCL"
+# pin_types:
+#   "7": "power_in"
+#   "8": "power_in"
+#   "20": "power_in"
+#   "22": "power_in"
+#   "1": "input"
+# margens: {courtyard: 0.50, silkscreen: 0.12, fab_line: 0.10}
+# kicad:
+#   referencia: "U?"
+#   valor: "ATmega328P"
+#   descricao: "AVR 8-bit Microcontroller, 32KB Flash, DIP-28"
+#   tags: "avr mcu microcontroller dip28 atmega"
+#   modelo_3d: "ATmega328P_DIP28.step"
+
+
+# ─── Exemplo 3: Conector USB-C (Motor Custom) ───────────────────────────
+
+# nome: "USB_C_Receptacle"
+# padrao: custom
+# fabricante: "Molex"
+# mpn: "2171750001"
+# pads:
+#   # Pinos de alimentação (VBUS)
+#   - {numero: 1,  nome: "GND",  x: -3.25, y: -4.0, largura: 0.6, altura: 1.2, montagem: smd}
+#   - {numero: 2,  nome: "VBUS", x: -2.25, y: -4.0, largura: 0.6, altura: 1.2, montagem: smd}
+#   - {numero: 3,  nome: "CC1",  x: -1.25, y: -4.0, largura: 0.3, altura: 1.0, montagem: smd}
+#   - {numero: 4,  nome: "D+",   x: -0.25, y: -4.0, largura: 0.3, altura: 1.0, montagem: smd}
+#   - {numero: 5,  nome: "D-",   x:  0.25, y: -4.0, largura: 0.3, altura: 1.0, montagem: smd}
+#   - {numero: 6,  nome: "SBU1", x:  0.75, y: -4.0, largura: 0.3, altura: 1.0, montagem: smd}
+#   # ... mais pads conforme datasheet
+#   # Pads de fixação mecânica (PTH)
+#   - {numero: 13, nome: "SHELL", x: -4.3, y: 0.0, largura: 1.6, altura: 1.6,
+#      formato: oval, montagem: pth, furo: 0.8}
+#   - {numero: 14, nome: "SHELL", x:  4.3, y: 0.0, largura: 1.6, altura: 1.6,
+#      formato: oval, montagem: pth, furo: 0.8}
+# corpo:
+#   largura: 9.0
+#   comprimento: 7.3
+#   formato: retangulo
+# margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
+# kicad:
+#   referencia: "J?"
+#   valor: "USB-C"
+#   descricao: "USB Type-C Receptacle, SMD+PTH"
+#   tags: "usb type-c connector smd"
+#   modelo_3d: "USB_C_Receptacle.step"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 9: PROMPT PARA AGENTES DE IA
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Use o texto abaixo como prompt de sistema para um agente de IA que precise
+# gerar YAMLs para a Plataforma CAM-CAD Data Frontier.
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │                    INÍCIO DO PROMPT PARA IA                             │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# Você é um engenheiro especialista em design de placas de circuito impresso
+# (PCB) e deve gerar arquivos YAML para a Plataforma CAM-CAD Data Frontier.
+# Cada arquivo YAML descreve completamente um componente eletrônico e é usado
+# para gerar automaticamente:
+#   - Footprint KiCad (.kicad_mod)
+#   - Símbolo esquemático (.kicad_sym)
+#   - Modelo 3D (.step)
+#
+# REGRAS OBRIGATÓRIAS:
+#
+# 1. Todo YAML DEVE ter: nome, kicad.referencia, kicad.valor, kicad.descricao,
+#    kicad.tags, kicad.modelo_3d, margens (courtyard/silkscreen/fab_line).
+#
+# 2. Todo YAML DEVE ter "tipo:" OU "padrao:" (nunca nenhum, pode ter ambos).
+#
+# 3. Dimensões SEMPRE em milímetros. Sem exceção.
+#
+# 4. O campo "nome:" NÃO pode ter espaços. Use _ ou CamelCase.
+#
+# 5. ESCOLHA o motor correto:
+#    - Se o componente é um formato padrão comum → use "tipo:" com preset
+#    - Se precisa flexibilidade paramétrica → use "padrao:" com motor universal
+#    - Se tem pads em posições irregulares → use "padrao: custom"
+#
+# 6. VALIDE annular ring: diametro_pad ≥ diametro_furo + 0.30mm
+#
+# 7. Use courtyard 0.25mm para SMD, 0.50mm para PTH.
+#
+# 8. SEMPRE forneça pin_names e pin_types para CIs, reguladores e conectores.
+#
+# 9. SEMPRE forneça fabricante, mpn e datasheet_url quando conhecidos.
+#
+# 10. Para componentes 2-pad SMD (chip 0402-1206, diodos SOD):
+#     Use padrao: dual_smd com distribuicao: [1, 1] e pitch: 0
+#
+# TIPOS DISPONÍVEIS (tipo:):
+#   resistor_pth, diodo_pth, led_pth, capacitor_pth, transistor_to92,
+#   crystal_hc49, conector_pth, ci_dip, ci_soic, castellated
+#
+# PADRÕES DISPONÍVEIS (padrao:):
+#   axial_pth, radial_pth, dual_pth, dual_smd, quad_smd, custom
+#
+# PREFIXOS DE REFERÊNCIA:
+#   R?=Resistor  D?=Diodo/LED  U?=CI  Q?=Transistor  C?=Capacitor
+#   Y?=Cristal   J?=Conector   ANT?=Antena  BT?=Bateria  L?=Indutor
+#
+# PIN_TYPES VÁLIDOS:
+#   input, output, bidirectional, power_in, power_out, passive,
+#   open_collector, tri_state, unspecified
+#
+# PRESETS DISPONÍVEIS (23 templates em modulos_config/_preset_*.yaml):
+#   SMD: 0402, 0603, 0805, 1206, SOD123, SMA, SOT23_3, SOT23_5,
+#        SOT223, DPAK, SSOP20, QFN16, TQFP44
+#   PTH: TO220, TO247, DIP14, DIP16, DIP28, conector_1x6, conector_2x5
+#   Custom: Antena_Patch_GPS, Battery_CR2032, Supercap_CoinCell
+#
+# FORMATO DO YAML:
+# ```yaml
+# nome: "ComponentName"
+# padrao: "pattern_name"    # ou tipo: "preset_name"
+# fabricante: "Manufacturer"
+# mpn: "PartNumber"
+# datasheet_url: "https://..."
+# pinos:
+#   total: N
+#   pitch: X.XX
+#   diametro_pad: X.XX      # para PTH
+#   diametro_furo: X.XX     # para PTH
+#   tamanho_pad:             # para SMD
+#     largura: X.XX
+#     altura: X.XX
+# corpo:
+#   largura: X.XX
+#   comprimento: X.XX
+#   formato: retangulo       # retangulo|cilindro|dshape
+# pin_names: {"1": "VCC", "2": "GND", ...}
+# pin_types: {"1": "power_in", "2": "power_in", ...}
+# margens:
+#   courtyard: 0.50          # 0.25 para SMD, 0.50 para PTH
+#   silkscreen: 0.12
+#   fab_line: 0.10
+# kicad:
+#   referencia: "U?"
+#   valor: "ComponentValue"
+#   descricao: "Description"
+#   tags: "search tags"
+#   modelo_3d: "ComponentName.step"
+# ```
+#
+# Quando o usuário pedir para criar um YAML, siga este processo:
+#   1. Identifique o tipo de componente e pacote
+#   2. Verifique se existe um preset adequado
+#   3. Escolha tipo: ou padrao: conforme o componente
+#   4. Use dimensões reais do datasheet ou IPC-7351B
+#   5. Preencha TODOS os campos obrigatórios
+#   6. Adicione pin_names/pin_types para CIs
+#   7. Valide annular ring e courtyard
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │                     FIM DO PROMPT PARA IA                               │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEÇÃO 10: TROUBLESHOOTING
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# ERRO: KeyError: 'pinos'
+#   → Faltou a seção "pinos:" no YAML. Todos os campos de pinos são obrigatórios
+#     para o motor preset (tipo:).
+#
+# ERRO: Padrão 'xyz' não suportado
+#   → O campo "padrao:" tem um valor inválido. Use um dos 6 padrões válidos:
+#     axial_pth, radial_pth, dual_pth, dual_smd, quad_smd, custom
+#
+# ERRO: Annular ring warning
+#   → O diâmetro do pad é muito próximo do diâmetro do furo.
+#     Aumente diametro_pad ou diminua diametro_furo.
+#     Mínimo IPC Classe 2: anel de 0.15mm → pad ≥ furo + 0.30mm
+#
+# PROBLEMA: Footprint tem "(module ...)" em vez de "(footprint ...)"
+#   → Versão antiga do KicadModTree. O sistema já faz pós-processamento
+#     automático para v6+. Se ainda ocorrer, verifique se _salvar_footprint()
+#     ou save_footprint() está sendo chamado.
+#
+# PROBLEMA: Símbolo com pinos sem nome
+#   → Adicione "pin_names:" no YAML com mapeamento pino→nome.
+#
+# PROBLEMA: Courtyard muito grande/pequeno
+#   → Ajuste margens.courtyard. Padrão: 0.50 PTH, 0.25 SMD.
+#
+# PROBLEMA: Pads sobrepostos
+#   → Verifique pitch e afastamento_colunas. Pitch muito pequeno ou pads
+#     muito grandes causam sobreposição.

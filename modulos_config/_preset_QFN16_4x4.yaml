@@ -1,0 +1,99 @@
+# =============================================================================
+# _preset_QFN16_4x4.yaml — Preset: QFN-16 4x4 mm
+#
+# Encapsulamento QFN (Quad Flat No-lead) compacto para CIs SMD como
+# conversores DC-DC, sensores, transceivers e microcontroladores pequenos.
+#
+# Dimensoes baseadas no datasheet JEDEC MO-220 / QFN-16 4x4:
+#   - Corpo: 4.0 x 4.0 mm
+#   - Pad: 0.8 x 0.3 mm (largura perpendicular a borda x altura paralela)
+#   - Pitch: 0.65 mm
+#   - Thermal pad central: 2.5 x 2.5 mm (50% pasta de solda)
+#   - 16 pinos: 4 por lado
+#
+# Numeracao horaria a partir do canto superior-esquerdo:
+#   Esquerdo: pinos 1-4 (cima para baixo)
+#   Base:     pinos 5-8 (esquerda para direita)
+#   Direito:  pinos 9-12 (baixo para cima)
+#   Topo:     pinos 13-16 (direita para esquerda)
+#
+# Usa o motor universal (padrao: quad_smd).
+# =============================================================================
+
+nome: "QFN16_4x4"
+padrao: "quad_smd"
+tipo_3d: "qfn"
+
+# --- Corpo ---
+corpo:
+  largura: 4.0               # mm — dimensao X do corpo
+  altura: 4.0                # mm — dimensao Y do corpo
+
+# --- Pinos ---
+pinos:
+  total: 16
+  pitch: 0.65                 # mm — espacamento entre pinos adjacentes
+  tamanho_pad:
+    largura: 0.8              # mm — extensao perpendicular a borda
+    altura: 0.3               # mm — extensao paralela a borda
+  lados:
+    esquerdo: 4               # pinos 1-4
+    base: 4                   # pinos 5-8
+    direito: 4                # pinos 9-12
+    topo: 4                   # pinos 13-16
+  thermal_pad:
+    largura: 2.5              # mm — largura do pad termico central
+    altura: 2.5               # mm — altura do pad termico central
+    pasta_ratio: 0.5          # 50% de cobertura de pasta de solda
+
+# --- Nomes dos pinos (generico — ajustar conforme o CI) ---
+pin_names:
+  1: "1"
+  2: "2"
+  3: "3"
+  4: "4"
+  5: "5"
+  6: "6"
+  7: "7"
+  8: "8"
+  9: "9"
+  10: "10"
+  11: "11"
+  12: "12"
+  13: "13"
+  14: "14"
+  15: "15"
+  16: "16"
+
+# --- Tipos eletricos dos pinos (generico) ---
+pin_types:
+  1: "unspecified"
+  2: "unspecified"
+  3: "unspecified"
+  4: "unspecified"
+  5: "unspecified"
+  6: "unspecified"
+  7: "unspecified"
+  8: "unspecified"
+  9: "unspecified"
+  10: "unspecified"
+  11: "unspecified"
+  12: "unspecified"
+  13: "unspecified"
+  14: "unspecified"
+  15: "unspecified"
+  16: "unspecified"
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "QFN16_4x4"
+  descricao: "QFN-16 4x4mm, CI SMD quad flat no-lead, JEDEC MO-220"
+  tags: "qfn qfn16 4x4 smd ci quad no-lead exposed-pad"
+  modelo_3d: "QFN16_4x4.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25             # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12            # espessura da linha de silkscreen
+  fab_line: 0.10              # espessura da linha de fabricacao

@@ -1,0 +1,31 @@
+# Capacitor eletrolítico PTH radial 100uF 16V
+nome: "Cap_100uF_16V"
+tipo: "capacitor_pth"
+fabricante: "Nichicon"
+mpn: "UVR1C101MED"
+datasheet_url: "~"
+
+corpo:
+  diametro: 8.0
+  altura: 11.5
+
+pinos:
+  espacamento: 3.5
+  diametro_pad: 2.0
+  diametro_furo: 0.8
+
+kicad:
+  referencia: "C?"
+  valor: "100uF/16V"
+  descricao: "Capacitor eletrolítico radial 100uF 16V"
+  tags: "capacitor eletrolitico radial 100uf 16v"
+  modelo_3d: "Cap_100uF_16V.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+eletrico:
+  tensao_maxima: "16V"
+  polaridade: true

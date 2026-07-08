@@ -1,0 +1,56 @@
+# =============================================================================
+# Preset: Conector Box Header 2x5 — IDC 10 pinos (PTH)
+# Conector macho 2 fileiras, 10 pinos, passo 2.54mm
+# Dimensoes conforme IPC-7251 — tipico para JTAG, ISP, SWD
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "Conn_02x05_BoxHeader"
+tipo: "ci_dip"             # dual-row PTH — usa mesma logica do DIP
+
+pinos:
+  total: 10
+  pitch: 2.54
+  diametro_pad: 1.7
+  diametro_furo: 1.0
+
+corpo:
+  largura: 8.9             # largura do conector plastico (mm)
+  comprimento: 16.0        # comprimento do conector plastico (mm)
+  afastamento_colunas: 2.54  # distancia entre as 2 fileiras de pinos — 100 mil
+
+kicad:
+  referencia: "J?"
+  valor: "Conn_02x05"
+  descricao: "Box header 2x5, 10-pin IDC connector, PTH, pitch 2.54mm"
+  tags: "conector header idc box 2x5 10pin pth 2.54mm jtag isp swd"
+  modelo_3d: "Conn_02x05_BoxHeader.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "Pin_1"
+  2: "Pin_2"
+  3: "Pin_3"
+  4: "Pin_4"
+  5: "Pin_5"
+  6: "Pin_6"
+  7: "Pin_7"
+  8: "Pin_8"
+  9: "Pin_9"
+  10: "Pin_10"
+
+pin_types:
+  1: "passive"
+  2: "passive"
+  3: "passive"
+  4: "passive"
+  5: "passive"
+  6: "passive"
+  7: "passive"
+  8: "passive"
+  9: "passive"
+  10: "passive"

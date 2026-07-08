@@ -1,0 +1,64 @@
+# =============================================================================
+# _preset_SOT23_5.yaml — Preset: SOT-23-5 (5 pinos)
+#
+# Encapsulamento SMD compacto para amplificadores operacionais, reguladores
+# de tensao LDO, referencias de tensao e conversores DC-DC.
+#
+# Dimensoes baseadas no datasheet JEDEC MO-178 / SOT-23-5:
+#   - Corpo: 2.9 x 1.6 mm
+#   - Pad: 1.0 x 0.6 mm
+#   - Pitch: 0.95 mm
+#   - Afastamento entre colunas (centro-centro): 2.6 mm
+#
+# Distribuicao assimetrica: 3 pinos no lado esquerdo, 2 pinos no lado direito.
+# Usa o motor universal (padrao: dual_smd).
+# =============================================================================
+
+nome: "SOT23_5"
+padrao: "dual_smd"
+tipo_3d: "sot23"
+
+# --- Corpo ---
+corpo:
+  largura: 2.9              # mm — dimensao X do corpo
+  comprimento: 1.6           # mm — dimensao Y do corpo
+  afastamento_colunas: 2.6   # mm — centro-centro entre colunas de pads
+
+# --- Pinos ---
+pinos:
+  total: 5
+  pitch: 0.95                # mm — espacamento entre pinos no mesmo lado
+  distribuicao: [3, 2]       # 3 pinos lado esquerdo, 2 pinos lado direito
+  tamanho_pad:
+    largura: 1.0             # mm — extensao perpendicular a borda
+    altura: 0.6              # mm — extensao paralela a borda
+
+# --- Nomes dos pinos (generico para op-amp/regulador) ---
+pin_names:
+  1: "IN1"
+  2: "GND"
+  3: "IN2"
+  4: "OUT"
+  5: "VCC"
+
+# --- Tipos eletricos dos pinos ---
+pin_types:
+  1: "input"
+  2: "power_in"
+  3: "input"
+  4: "output"
+  5: "power_in"
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "U?"
+  valor: "SOT23_5"
+  descricao: "SOT-23-5 pinos, op-amp/regulador SMD, JEDEC MO-178"
+  tags: "sot23-5 sot-23 opamp regulador ldo smd 5pin"
+  modelo_3d: "SOT23_5.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25            # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12           # espessura da linha de silkscreen
+  fab_line: 0.10             # espessura da linha de fabricacao

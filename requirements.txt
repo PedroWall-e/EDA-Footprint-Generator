@@ -1,0 +1,27 @@
+# =============================================================================
+# requirements.txt — Dependências do Gerador de Footprints KiCad + STEP 3D
+#
+# ATENÇÃO: Use o setup_ambiente.ps1 para instalar tudo automaticamente.
+# Este arquivo é referência de versões. NÃO rode `pip install -r requirements.txt`
+# diretamente, pois o cadquery e KicadModTree são instalados de fontes locais.
+# =============================================================================
+
+# --- Interface gráfica ---
+PyQt5>=5.15
+
+# --- Leitura de configuração YAML ---
+PyYAML>=6.0
+
+# --- Visualização 2D (canvas matplotlib embutido no Qt) ---
+matplotlib>=3.7
+
+# --- Computação numérica (usado internamente pelo cadquery e matplotlib) ---
+numpy>=1.24
+
+# --- Binário do kernel OpenCASCADE (instalado no .venv pelo setup_ambiente.ps1) ---
+ocp>=7.7.0
+
+# --- Instalados em modo editável a partir de libs/ (pelo setup_ambiente.ps1) ---
+# cadquery    -> libs/cadquery/      (pip install -e libs/cadquery)
+# cq-editor   -> libs/CQ-editor/    (pip install -e libs/CQ-editor)
+# KicadModTree -> KicadModTree/     (adicionado via .pth ao site-packages)

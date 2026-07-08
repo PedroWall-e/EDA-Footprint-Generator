@@ -1,0 +1,14 @@
+{
+  "1N4007_DO41.yaml": "3e6b5c514c9a6eca85c0737109005c53",
+  "BC547_TO92.yaml": "c4d22b611e4917e4cd767ef532a05a0f",
+  "Cap_100uF_16V.yaml": "78b29c30bccdd0d26de13cc23b7348dd",
+  "Crystal_16MHz_HC49.yaml": "96d53cb536c8958f8cc27a60c5fb74fe",
+  "LED_5mm_Vermelho.yaml": "f3189ef0cf314bdbdf182b76014f59d1",
+  "ModuloLTE_4Lados.yaml": "6af99ec55e32951d1c24205bec2d690f",
+  "NE555_DIP8.yaml": "88da81e6aaa64adf84a5751e2d92e48e",
+  "NE555_SOIC8.yaml": "25e690b79b7ff6a2c4486fdd9e4342d8",
+  "RM200-v2.yaml": "6b15d768fcc639b2c771a65a7b2cce80",
+  "Stx3.yaml": "08ec0f344cc9779a5b72837e687b2f4d",
+  "header_3pin.yaml": "3c96ed31c3c590255d9a784ce1718d61",
+  "resistor_470R.yaml": "b73417ffbc3b1a396e04b8c758627791"
+}

@@ -1,0 +1,44 @@
+# Transistor NPN BC547 — TO-92
+nome: "BC547_TO92"
+tipo: "transistor_to92"
+fabricante: "ON Semiconductor"
+mpn: "BC547BTA"
+datasheet_url: "https://www.onsemi.com/pdf/datasheet/bc547-d.pdf"
+
+pinos:
+  total: 3
+  pitch: 2.54
+  diametro_pad: 1.7
+  diametro_furo: 0.9
+  pinagem: "CBE"
+
+corpo:
+  diametro: 5.0
+  altura: 4.5
+
+kicad:
+  referencia: "Q?"
+  valor: "BC547"
+  descricao: "Transistor NPN BC547 TO-92 — hFE 110-800"
+  tags: "transistor npn to92 bc547"
+  modelo_3d: "BC547_TO92.step"
+
+margens:
+  courtyard: 0.50
+  silkscreen: 0.12
+  fab_line: 0.10
+
+pin_names:
+  1: "C"
+  2: "B"
+  3: "E"
+
+pin_types:
+  1: "passive"
+  2: "input"
+  3: "passive"
+
+eletrico:
+  tensao_maxima: "45V"
+  potencia: "0.625W"
+  polaridade: true

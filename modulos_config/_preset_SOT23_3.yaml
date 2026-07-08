@@ -1,0 +1,66 @@
+# =============================================================================
+# _preset_SOT23_3.yaml — Preset: SOT-23 3 pinos
+#
+# Encapsulamento SMD compacto para transistores (NPN/PNP), MOSFETs,
+# reguladores pequenos e diodos duplos.
+#
+# Dimensoes baseadas no datasheet JEDEC TO-236AB / SOT-23:
+#   - Corpo: 2.9 x 1.3 mm
+#   - Pad: 1.0 x 0.6 mm
+#   - Pitch: 0.95 mm
+#   - Afastamento entre colunas (centro-centro): 2.2 mm
+#
+# Pinagem padrao (NPN transistor, ex: BC847, 2N2222A):
+#   Pino 1: Base (B)
+#   Pino 2: Emissor (E)
+#   Pino 3: Coletor (C)
+#
+# Distribuicao assimetrica: 2 pinos no lado esquerdo, 1 pino no lado direito.
+# Usa o motor universal (padrao: dual_smd).
+# =============================================================================
+
+nome: "SOT23_3"
+padrao: "dual_smd"
+simbolo: "mosfet_n"         # símbolo esquemático: MOSFET canal N (G/D/S)
+tipo_3d: "sot23"
+
+# --- Corpo ---
+corpo:
+  largura: 2.9              # mm — dimensao X do corpo (paralela aos pads)
+  comprimento: 1.3           # mm — dimensao Y do corpo (perpendicular)
+  afastamento_colunas: 2.2   # mm — centro-centro entre colunas de pads
+
+# --- Pinos ---
+pinos:
+  total: 3
+  pitch: 0.95                # mm — espacamento entre pinos no mesmo lado
+  distribuicao: [2, 1]       # 2 pinos lado esquerdo, 1 pino lado direito
+  tamanho_pad:
+    largura: 1.0             # mm — extensao perpendicular a borda (comprimento do pad)
+    altura: 0.6              # mm — extensao paralela a borda (largura do pad)
+
+# --- Nomes dos pinos (NPN transistor padrao) ---
+pin_names:
+  1: "B"                     # Base
+  2: "E"                     # Emissor
+  3: "C"                     # Coletor
+
+# --- Tipos eletricos dos pinos ---
+pin_types:
+  1: "passive"               # Base
+  2: "passive"               # Emissor
+  3: "passive"               # Coletor
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "Q?"
+  valor: "SOT23_3"
+  descricao: "SOT-23 3 pinos, transistor/regulador SMD, JEDEC TO-236AB"
+  tags: "sot23 sot-23 transistor npn pnp mosfet smd 3pin"
+  modelo_3d: "SOT23_3.step"
+
+# --- Tolerancias e margens ---
+margens:
+  courtyard: 0.25            # IPC-7351: 0.25mm para SMD
+  silkscreen: 0.12           # espessura da linha de silkscreen
+  fab_line: 0.10             # espessura da linha de fabricacao

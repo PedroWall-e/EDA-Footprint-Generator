@@ -1,0 +1,52 @@
+# =============================================================================
+# _preset_SOD123.yaml — Preset para Diodo SMD SOD-123
+#
+# Pacote: SOD-123 (JEDEC)
+# Padrao: dual_smd (motor universal — 2 pads SMD simetricos)
+# Dimensoes baseadas em IPC-7351B (densidade nominal "N")
+# Aplicacao: diodos de sinal, Schottky, Zener em pacote SOD-123
+# Unidades: milimetros (mm)
+# =============================================================================
+
+nome: "SOD123"
+padrao: "dual_smd"
+simbolo: "diodo"            # símbolo esquemático: diodo genérico (catodo/anodo)
+tipo_3d: "smd_diode"
+
+# --- Corpo do componente ---
+corpo:
+  largura: 2.7               # 2.7mm (dimensao ao longo do eixo dos pads)
+  comprimento: 1.6            # 1.6mm (dimensao perpendicular)
+  formato: "retangulo"
+
+# --- Pinos / Pads ---
+pinos:
+  total: 2
+  distribuicao: [1, 1]        # 1 pad de cada lado
+  tamanho_pad:
+    largura: 1.1              # extensao do pad no eixo X (mm)
+    altura: 0.8               # extensao do pad no eixo Y (mm)
+  afastamento_colunas: 3.6    # distancia centro-a-centro entre pads (mm)
+
+# --- Metadados KiCad ---
+kicad:
+  referencia: "D?"
+  valor: "SOD-123"
+  descricao: "Diode SMD SOD-123, signal/Schottky/Zener"
+  tags: "smd sod-123 diode signal schottky zener"
+  modelo_3d: "SOD123.step"
+
+# --- Tolerancias e margens (IPC-7351B) ---
+margens:
+  courtyard: 0.25
+  silkscreen: 0.12
+  fab_line: 0.10
+
+# --- Nomes e tipos dos pinos ---
+pin_names:
+  1: "K"                      # Catodo (Kathode)
+  2: "A"                      # Anodo (Anode)
+
+pin_types:
+  1: "passive"
+  2: "passive"
