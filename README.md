@@ -28,6 +28,7 @@ kicad:  { referencia: "R?", valor: "470R", modelo_3d: "R_Axial_470R.step" }
 ```
 
 ```bash
+python cli.py gerar componente.yaml --dry-run  # validate only
 python cli.py gerar resistor_470R.yaml -o saida/
 # ✅ R_Axial_470R.kicad_mod   ✅ R_Axial_470R.kicad_sym   ✅ R_Axial_470R.step
 ```
