@@ -67,13 +67,27 @@ def _dir_size(path):
 
 
 def _zip_package(zip_path):
-    """Zipa STAGE_DIR preservando a estrutura relativa."""
+    """Zipa STAGE_DIR de forma REPRODUZÍVEL (ordem e mtime fixos).
+
+    Datas/ordem fixas garantem que o sha256 do zip seja estável entre builds
+    e máquinas — essencial porque o índice do PCM (packages.json) precisa
+    conter o sha256 exato do arquivo hospedado.
+    """
+    arquivos = []
+    for root, _dirs, files in os.walk(STAGE_DIR):
+        for f in files:
+            full = os.path.join(root, f)
+            arc = os.path.relpath(full, STAGE_DIR).replace(os.sep, '/')
+            arquivos.append((full, arc))
+    arquivos.sort(key=lambda x: x[1])  # ordem determinística
+
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for root, _dirs, files in os.walk(STAGE_DIR):
-            for f in files:
-                full = os.path.join(root, f)
-                arc = os.path.relpath(full, STAGE_DIR)
-                zf.write(full, arc)
+        for full, arc in arquivos:
+            zi = zipfile.ZipInfo(arc, date_time=(1980, 1, 1, 0, 0, 0))
+            zi.compress_type = zipfile.ZIP_DEFLATED
+            zi.external_attr = 0o644 << 16
+            with open(full, 'rb') as fp:
+                zf.writestr(zi, fp.read())
 
 
 def _sha256(path):
