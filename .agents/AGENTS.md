@@ -14,7 +14,25 @@ Gera 3 saídas por componente: `.kicad_mod` (footprint), `.kicad_sym` (símbolo)
 5. **Sem auto-geração** — O usuário clica ▶ para gerar; nunca auto-gere
 6. **UTF-8 sempre** — Use `-X utf8` ou `reconfigure(encoding='utf-8')` no Windows
 7. **Saída em `saida/`** — Arquivos gerados ficam em `saida/`, preview em `saida/_preview/`
-8. **Idioma**: Interface e documentação em Português (BR)
+8. **Idioma**: Interface e documentação de usuário em Português (BR). `README.md` (inglês) e `README.pt-BR.md` devem ser mantidos em sincronia; templates de issue/PR em inglês.
+9. **📌 DISCIPLINA DE DOCUMENTAÇÃO (obrigatória)** — A cada mudança, pequena ou grande, atualize a documentação afetada **na mesma alteração**. Ver tabela abaixo. Documentação desatualizada é tratada como bug.
+
+## Disciplina de Documentação
+
+Antes de considerar uma tarefa concluída, verifique se algum destes artefatos precisa acompanhar a mudança e **atualize-o junto**:
+
+| Se você mudou… | Atualize também |
+|---|---|
+| Qualquer comportamento visível (feature, fix, remoção) | `CHANGELOG.md` (sempre) |
+| Campos/estrutura do YAML | `schemas/component.schema.json`, `docs/MANUAL_YAML_REFERENCIA.yaml`, `.agents/skills/component_generator/SKILL.md`, `README.md` + `README.pt-BR.md` |
+| Padrões (`_PADROES`) ou tipos 3D (`TEMPLATES_3D`) | `SKILL.md` (tabelas de padrões/tipos), `README*` (tabela de features) |
+| Presets em `modulos_config/_preset_*.yaml` | Tabela de presets na `SKILL.md` |
+| Comandos da CLI / endpoints da API | `SKILL.md`, `README*`, docstring do próprio comando |
+| Exportadores (Eagle/Altium/BOM) ou validadores (IPC/DRC) | `README*` (features + seção "trust"), `CHANGELOG.md` |
+| Regras de contribuição / setup | `CONTRIBUTING.md`, `README*` (quick start) |
+| Versão do plugin ou release | `kicad_plugin/metadata.json`, `core/version.py`, `CHANGELOG.md` |
+
+**Regra de ouro:** `README.md` e `README.pt-BR.md` são espelhos — nunca atualize um sem o outro. Se não tiver certeza de qual doc atualizar, atualize o `CHANGELOG.md` no mínimo.
 
 ## Estrutura do Projeto
 

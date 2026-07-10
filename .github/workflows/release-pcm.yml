@@ -1,0 +1,36 @@
+name: Release — KiCad PCM package
+
+# Builds the PCM plugin package and attaches it to the GitHub Release
+# whenever a version tag (v*) is pushed.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-pcm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build PCM package
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/DataFrontier-PCM-${TAG#v}.zip"
+          python scripts/build_pcm_package.py --download-url "$URL" | tee pcm_build.txt
+
+      - name: Attach package to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/pcm/DataFrontier-PCM-*.zip
+          body_path: pcm_build.txt

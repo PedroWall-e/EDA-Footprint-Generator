@@ -59,6 +59,35 @@ kicad_plugin/   ← Plugin KiCad nativo
 scripts/        ← Scripts utilitários
 ```
 
+## Disciplina de Documentação (obrigatória)
+
+Toda mudança — pequena ou grande — deve atualizar a documentação afetada **no mesmo PR**. Documentação desatualizada é tratada como bug e trava o merge.
+
+| Se você mudou… | Atualize também |
+|---|---|
+| Qualquer comportamento visível | `CHANGELOG.md` (sempre) |
+| Campos/estrutura do YAML | `schemas/component.schema.json`, `docs/MANUAL_YAML_REFERENCIA.yaml`, `README.md` + `README.pt-BR.md` |
+| Padrões de pad ou tipos 3D | `.agents/skills/component_generator/SKILL.md`, `README*` |
+| Presets (`modulos_config/_preset_*.yaml`) | Tabela de presets na `SKILL.md` |
+| Comandos da CLI / endpoints da API | `SKILL.md`, `README*` |
+| Exportadores ou validadores | `README*`, `CHANGELOG.md` |
+| Versão do plugin / release | `kicad_plugin/metadata.json`, `core/version.py`, `CHANGELOG.md` |
+
+> `README.md` (inglês) e `README.pt-BR.md` são espelhos: nunca atualize um sem o outro.
+
+## Bons primeiros PRs (good first issues)
+
+Quer começar? Estes são pontos de entrada de baixo risco e alto valor:
+
+1. **Adicionar um preset** para um package ainda não coberto (ex.: `_preset_QFN20`, `_preset_uMAX8`) copiando um `_preset_*.yaml` similar.
+2. **Traduzir uma seção** do `docs/MANUAL_YAML_REFERENCIA.yaml` para inglês (`docs/YAML_REFERENCE.en.yaml`).
+3. **Adicionar um teste** para um padrão pouco coberto em `tests/teste_v2.py`.
+4. **Gravar o GIF de demonstração** (`assets/demo.gif`) e referenciá-lo no README.
+5. **Melhorar uma mensagem de erro** de validação IPC para incluir o valor esperado vs. obtido.
+6. **Adicionar um `--dry-run`** ao `cli.py gerar` que valida e mostra o que seria gerado sem escrever arquivos.
+
+Veja a lista completa e etiquetada em [good first issues](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/labels/good%20first%20issue).
+
 ## Testes
 
 Antes de enviar um PR, garanta que todos os testes passam:

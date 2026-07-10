@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 YAML reference & docs
+    url: https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/blob/main/docs/MANUAL_YAML_REFERENCIA.yaml
+    about: How to describe a component in YAML before opening an issue.
+  - name: 💬 Questions & discussion
+    url: https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/discussions
+    about: Ask how to model a specific package (enable Discussions in repo settings).

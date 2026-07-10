@@ -3,6 +3,15 @@
 Todas as mudanças notáveis do projeto são documentadas aqui.
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado]
+
+### Adicionado
+- README em inglês (`README.md`) como página de produto; versão PT-BR movida para `README.pt-BR.md`
+- Templates de issue (bug/feature) e de Pull Request em `.github/`
+- Regra de **Disciplina de Documentação** em `.agents/AGENTS.md`, `SKILL.md` e `CONTRIBUTING.md`
+- Empacotamento para o KiCad PCM: `metadata.json` no schema oficial, `scripts/build_pcm_package.py`, guia `kicad_plugin/README_PCM.md` e workflow `release-pcm.yml`
+- Seção de "good first issues" no `CONTRIBUTING.md`
+
 ## [3.0.0] - 2026-06-16
 
 ### Adicionado

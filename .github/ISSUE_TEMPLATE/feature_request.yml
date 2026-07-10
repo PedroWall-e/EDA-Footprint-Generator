@@ -1,0 +1,36 @@
+name: ✨ Feature / package request
+description: A new package, pattern, export target, or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What are you trying to build? What component or workflow is missing?
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type of request
+      options:
+        - New package / footprint pattern
+        - New export target
+        - Validation rule (IPC / DRC)
+        - GUI / usability
+        - CLI / API / automation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: datasheet
+    attributes:
+      label: Datasheet / reference (for a new package)
+      description: Link to a datasheet or IPC land-pattern reference, if applicable.
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: How should it work? A sample YAML sketch helps a lot.
+      render: yaml

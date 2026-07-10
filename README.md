@@ -1,335 +1,158 @@
-# 🏭 Plataforma CAM/CAD Data Frontier
+<p align="right"><a href="README.pt-BR.md">🇧🇷 Português</a></p>
 
-> Gerador paramétrico de **footprints** (`.kicad_mod`), **símbolos esquemáticos** (`.kicad_sym`) e **modelos 3D STEP** para o KiCad — tudo a partir de arquivos YAML.
+# 🏭 Data Frontier — Parametric EDA Component Generator
 
----
+> Stop hand-drawing footprints. Describe a component once in **YAML** and generate the **KiCad footprint** (`.kicad_mod`), **schematic symbol** (`.kicad_sym`) and **3D model** (`.step`) in one shot — validated against **IPC-7351B** before anything is written.
 
-## 📋 Visão Geral
-
-A **Plataforma CAM/CAD Data Frontier** é uma aplicação desktop construída sobre o
-[CQ-Editor](https://github.com/CadQuery/CQ-editor) (PyQt5 + CadQuery) que permite
-projetar componentes eletrônicos de forma declarativa.
-
-Em vez de desenhar manualmente cada pad, silk e courtyard, você descreve o
-componente em um arquivo **YAML** com parâmetros físicos (dimensões do corpo,
-espaçamento de pinos, tipo de encapsulamento) e a plataforma gera
-automaticamente:
-
-| Artefato | Formato | Descrição |
-|---|---|---|
-| Footprint | `.kicad_mod` | Layout de pads, silkscreen, courtyard e camadas fab |
-| Símbolo | `.kicad_sym` | Representação esquemática com pinos nomeados e tipados |
-| Modelo 3D | `.step` | Sólido paramétrico gerado via CadQuery / OpenCASCADE |
-
-A interface gráfica oferece preview **2D interativo** (footprint + símbolo) e
-**3D em tempo real** (via motor CQ-Editor), tudo em uma janela unificada com
-tema escuro Catppuccin Mocha.
+[![CI](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![KiCad 6+](https://img.shields.io/badge/KiCad-6%20%7C%207%20%7C%208-brightgreen.svg)](https://www.kicad.org/)
 
 ---
 
-## 🧩 Tipos de Componente Suportados
+## The problem
 
-| Tipo | Encapsulamento | Exemplo |
-|---|---|---|
-| `castellated` | SMD com pads castelados (2 ou 4 lados) | Módulos RF / LTE |
-| `diodo_pth` | Axial PTH (DO-41, etc.) | 1N4007 |
-| `resistor_pth` | Axial PTH | 470Ω 0.5W |
-| `ci_dip` | DIP through-hole | NE555 DIP-8 |
-| `ci_soic` | SOIC SMD | NE555 SOIC-8 |
-| `conector_pth` | Header / conector PTH | Header 1×3 |
-| `led_pth` | LED PTH (3mm / 5mm) | LED 5mm Vermelho |
-| `capacitor_pth` | Radial PTH | 100µF 16V |
-| `transistor_to92` | TO-92 PTH | BC547 |
-| `crystal_hc49` | HC-49 PTH | Cristal 16MHz |
+Drawing a footprint by hand is slow and, worse, **error-prone** — a pad 0.2 mm off, a courtyard that overlaps, an annular ring below spec, and you find out when the board comes back from fab. Existing part libraries help only if *your* exact part is already in them.
 
----
+**Data Frontier** takes a different route: you describe the component's physical parameters (body size, pin pitch, package type) in a small YAML file, and it generates a **complete, standards-checked** footprint + symbol + 3D model. The same source produces exports for **KiCad, Eagle and Altium**, and the STEP model drops straight into **Fusion 360**.
 
-## ⚙️ Setup
-
-### Pré-requisitos
-
-| Requisito | Versão mínima |
-|---|---|
-| Python | 3.10+ |
-| KiCad | 6+ (para abrir os arquivos gerados) |
-| Sistema Operacional | Windows 10/11 |
-
-### Instalação automática (recomendado)
-
-```powershell
-# No PowerShell, a partir da raiz do projeto:
-.\scripts\setup_ambiente.ps1
+```yaml
+# resistor_470R.yaml — the whole component in 20 lines
+nome: R_Axial_470R
+padrao: axial_pth
+pinos:  { espacamento: 10.16, diametro_pad: 1.8, diametro_furo: 0.8 }
+corpo:  { comprimento: 6.0, diametro: 2.5, formato: cilindro }
+margens:{ courtyard: 0.5, silkscreen: 0.12, fab_line: 0.10 }
+kicad:  { referencia: "R?", valor: "470R", modelo_3d: "R_Axial_470R.step" }
 ```
 
-O script automaticamente:
-1. Detecta o Python instalado (3.10–3.12)
-2. Cria o ambiente virtual `.venv`
-3. Instala o `ocp` (binário OpenCASCADE)
-4. Instala `cadquery` e `CQ-Editor` em modo editável a partir de `libs/`
-5. Configura o `KicadModTree` no site-packages
+```bash
+python cli.py gerar resistor_470R.yaml -o saida/
+# ✅ R_Axial_470R.kicad_mod   ✅ R_Axial_470R.kicad_sym   ✅ R_Axial_470R.step
+```
 
-### Instalação manual
+<!-- TODO: add a 10-second demo GIF here -> assets/demo.gif (YAML on the left, footprint + 3D preview on the right) -->
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+---
 
-pip install PyYAML>=6.0
-pip install ocp>=7.7.0
-pip install -e libs/cadquery
-pip install -e libs/CQ-editor
+## Why trust the output?
+
+Footprint mistakes become **manufacturing mistakes**. So every generation is checked before a file is written:
+
+- **IPC-7351B validation** — pad-to-pad clearance, courtyard excess, annular ring, silkscreen-to-pad. Errors **abort** generation; warnings are surfaced. ([`core/validador_ipc.py`](core/validador_ipc.py))
+- **JSON Schema** — the component structure is validated against a formal schema. ([`schemas/component.schema.json`](schemas/component.schema.json))
+- **DRC** — 8 configurable design-rule checks on the generated footprint. ([`core/verificador_drc.py`](core/verificador_drc.py))
+- **CI** — 107 automated tests run on **Windows + Linux** across **Python 3.9 / 3.11 / 3.12** on every push.
+
+---
+
+## Features
+
+| | |
+|---|---|
+| 🦶 **Footprints** | `.kicad_mod` — pads, silkscreen, courtyard, fab layers (KiCad 6/7/8) |
+| 🔣 **Symbols** | `.kicad_sym` — schematic symbol with named, typed pins |
+| 🧊 **3D models** | `.step` — parametric solid via CadQuery / OpenCASCADE (imports into Fusion 360) |
+| 🔄 **Multi-EDA export** | KiCad `.pretty` libraries, Eagle `.lbr`, Altium CSV, BOM CSV |
+| 📐 **7 pad patterns** | `axial_pth`, `radial_pth`, `dual_pth`, `dual_smd`, `quad_smd`, `custom`, `bga` |
+| 🖥️ **4 ways to drive it** | Desktop GUI (PyQt5), CLI, REST API (FastAPI), native KiCad plugin |
+| ✅ **Validation built-in** | IPC-7351B + JSON Schema + DRC |
+
+### Supported packages (out of the box)
+
+Chip (0402/0603/0805/1206), SOT-23/223, SSOP, SOIC, DIP, QFN, QFP, BGA, TO-92/220/247, DPAK, DO-214/SOD-123, axial/radial PTH (resistor, diode, LED, capacitor, crystal), pin headers, castellated RF modules, coin-cell batteries and patch antennas. Start from any of the 30+ presets in [`modulos_config/_preset_*.yaml`](modulos_config/).
+
+---
+
+## Quick start
+
+> **Requires:** Python 3.10+, and KiCad 6+ to open the generated files.
+
+```bash
+git clone https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier.git
+cd EDA-Footprint-Generator-Data-Frontier
+
+# Windows (recommended) — sets up the venv + local CadQuery/CQ-Editor deps
+.\scripts\setup_ambiente.ps1
+
+# Generate a component
+python cli.py gerar modulos_config/NE555_DIP8.yaml -o saida/
+
+# Validate without generating
+python cli.py validar modulos_config/NE555_DIP8.yaml
+
+# Generate an entire folder
+python cli.py batch modulos_config/ -o saida/
+
+# JSON output (for scripts / AI agents)
+python cli.py --json gerar modulos_config/NE555_DIP8.yaml -o saida/
 ```
 
 > [!WARNING]
-> Não rode `pip install -r requirements.txt` diretamente — o `cadquery` e
-> `CQ-Editor` precisam ser instalados a partir das fontes locais em `libs/`.
+> Don't run `pip install -r requirements.txt` directly — `cadquery` and `CQ-Editor` are installed from the local sources in `libs/` (the setup script handles this). The 3D/STEP output needs CadQuery; footprint + symbol generation work without it.
+
+### Desktop GUI
+
+```bash
+abrir_dual.bat        # Windows
+./abrir_dual.sh       # Linux / macOS
+```
+
+Edit the YAML on the left, press `Ctrl+Enter`, and see the 2D footprint, schematic symbol and live 3D model side by side.
 
 ---
 
-## 🚀 Uso
+## How does it compare?
 
-### Iniciar a plataforma
+Because you'll compare anyway — here's an honest take:
 
-```bat
-abrir_dual.bat
-```
+| Tool | Approach | Where Data Frontier differs |
+|---|---|---|
+| **[kicad-footprint-generator](https://gitlab.com/kicad/libraries/kicad-footprint-generator)** (official) | Python scripts, no GUI | Data Frontier adds a GUI, a declarative YAML layer, symbol + 3D in one run, and multi-EDA export |
+| **SnapEDA / Ultra Librarian** | Download pre-made parts | Data Frontier *generates* parametrically — works for parts not in any library, and you own the source |
+| **Component Search Engine** | Vendor part catalog | No account, no per-part download; describe the package and generate offline |
 
-### Fluxo de trabalho
-
-```
-1. Selecione um componente na aba Biblioteca (ou abra um YAML manualmente)
-2. Edite os parâmetros no editor YAML (esquerda)
-3. Pressione Ctrl+Enter para gerar footprint + símbolo + modelo 3D
-4. Visualize o footprint 2D e o símbolo esquemático nas abas centrais
-5. O modelo 3D aparece automaticamente no viewer CQ-Editor (direita)
-6. Exporte para a biblioteca KiCad com o botão 📦 Lib
-```
-
-### Gerar a biblioteca completa
-
-O botão **📦 Lib** na toolbar gera todos os `.kicad_mod` de `modulos_config/`
-e os copia para `biblioteca_kicad/`, organizados por tipo de componente
-(uma pasta `.pretty` por tipo).
+If your exact part already exists in a library, grabbing it there is faster. Data Frontier wins when you need a **custom or uncommon package**, want **KiCad + Eagle + Altium + 3D from one definition**, or want the generation **IPC-checked and reproducible** in CI.
 
 ---
 
-## 📁 Estrutura do Projeto
+## Interfaces
 
-```
-Teste Gerador de footprint/
-│
-├── abrir_dual.bat             # ▶️  Script de inicialização rápida
-├── _estado_atual.json         # Estado interno (último YAML, último output)
-│
-├── gui/                       # 🖼️  Interface gráfica
-│   ├── interface_dual.py          # 🚀 Ponto de entrada principal
-│   ├── painel_yaml_editor.py      # Editor YAML com syntax highlighting
-│   ├── painel_footprint_2d.py     # Viewer 2D interativo do footprint
-│   ├── painel_symbol_2d.py        # Viewer 2D do símbolo esquemático
-│   ├── painel_cadquery_editor.py  # Editor de código CadQuery (modelo 3D)
-│   ├── painel_pin_editor.py       # Editor visual de nomes/tipos dos pinos
-│   ├── painel_biblioteca.py       # Navegador da biblioteca de componentes
-│   ├── canvas_base.py             # Canvas matplotlib interativo (zoom, pan)
-│   └── widgets_common.py          # Widgets compartilhados (toolbar, status)
-│
-├── core/                      # ⚙️  Motores de geração
-│   ├── runner_stub.py             # 🔌 Loader CQ-Editor — ponte para o motor 3D
-│   ├── gerador_footprint.py       # Gera .kicad_mod (todos os 10 tipos)
-│   ├── gerador_symbol.py          # Gera .kicad_sym (símbolo esquemático)
-│   ├── gerador_universal.py       # Orquestrador: YAML → footprint + sym + 3D
-│   ├── geometria_pads.py          # Cálculo de geometria dos pads
-│   ├── exportar_biblioteca.py     # Exportação em lote para biblioteca KiCad
-│   ├── verificar_kicad.py         # Validação DRC dos footprints gerados
-│   └── log_config.py              # Configuração de logging
-│
-├── modulos_config/            # 📝 Configurações YAML dos componentes
-│   ├── _template.yaml            # Template base para novos componentes
-│   ├── resistor_470R.yaml
-│   ├── 1N4007_DO41.yaml
-│   ├── NE555_DIP8.yaml
-│   ├── NE555_SOIC8.yaml
-│   ├── LED_5mm_Vermelho.yaml
-│   ├── Cap_100uF_16V.yaml
-│   ├── BC547_TO92.yaml
-│   ├── Crystal_16MHz_HC49.yaml
-│   ├── header_3pin.yaml
-│   ├── ModuloLTE_4Lados.yaml
-│   └── ...
-│
-├── saida/                     # 📤 Arquivos gerados (footprint + sym + STEP)
-│
-├── biblioteca_kicad/          # 📚 Biblioteca KiCad exportada
-│   ├── castellated.pretty/
-│   ├── ci_dip.pretty/
-│   ├── ci_soic.pretty/
-│   ├── resistor_pth.pretty/
-│   └── ...  (uma pasta .pretty por tipo)
-│
-├── libs/                      # 📦 Dependências locais
-│   ├── CQ-editor/                # Fork/cópia do CQ-Editor
-│   ├── cadquery/                 # CadQuery (kernel CAD paramétrico)
-│   ├── kicad-footprint-generator/ # Utilitários KiCad
-│   └── kicad-library-utils/      # Validação de bibliotecas KiCad
-│
-├── KicadModTree_dev/          # 🌳 Gerador de S-expressions KiCad
-│
-├── tests/                     # 🧪 Testes
-│   └── teste_v2.py            # Suite de testes (107 testes)
-│
-├── docs/                      # 📖 Documentação
-│   └── MANUAL_YAML_REFERENCIA.yaml  # Referência completa dos campos YAML
-│
-└── scripts/
-    └── setup_ambiente.ps1     # 🔧 Setup automático do ambiente
+| Interface | Entry point | Use for |
+|---|---|---|
+| **GUI** | `abrir_dual.bat` → [`gui/interface_dual.py`](gui/interface_dual.py) | Interactive design with 2D + 3D preview |
+| **CLI** | [`cli.py`](cli.py) | Automation, batch, CI, AI agents (`--json`, `--stdin`) |
+| **REST API** | [`api_server.py`](api_server.py) → `http://localhost:8042/docs` | Integrating from other apps |
+| **KiCad plugin** | [`kicad_plugin/`](kicad_plugin/) | Generating from inside pcbnew |
+
+---
+
+## Documentation
+
+- **YAML reference** — [`docs/MANUAL_YAML_REFERENCIA.yaml`](docs/MANUAL_YAML_REFERENCIA.yaml)
+- **JSON Schema** — [`schemas/component.schema.json`](schemas/component.schema.json) (`python cli.py schema`)
+- **Presets** — [`modulos_config/_preset_*.yaml`](modulos_config/)
+- **Contributing** — [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Changelog** — [`CHANGELOG.md`](CHANGELOG.md)
+
+---
+
+## Contributing
+
+Issues and PRs are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and the [good first issues](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/labels/good%20first%20issue). Run the tests before opening a PR:
+
+```bash
+python tests/teste_v2.py    # expected: 107/107 OK
 ```
 
 ---
 
-## 🏗️ Arquitetura
+## License & trademarks
 
-```mermaid
-graph TD
-    subgraph Interface
-        BAT["abrir_dual.bat"]
-        DUAL["gui/interface_dual.py"]
-        BAT --> DUAL
-    end
+Distributed under the **GNU General Public License v3.0** (GPL-3.0-or-later). See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-    subgraph GUI["gui/  —  Painéis"]
-        YAML_ED["painel_yaml_editor"]
-        FP_2D["painel_footprint_2d"]
-        SYM_2D["painel_symbol_2d"]
-        CQ_ED["painel_cadquery_editor"]
-        PIN_ED["painel_pin_editor"]
-        BIB["painel_biblioteca"]
-        CANVAS["canvas_base"]
-    end
-
-    subgraph Core["core/  —  Motores"]
-        UNIV["gerador_universal"]
-        FP["gerador_footprint"]
-        SYM["gerador_symbol"]
-        GEO["geometria_pads"]
-        EXP["exportar_biblioteca"]
-        VER["verificar_kicad"]
-    end
-
-    subgraph Dados["Dados"]
-        YAMLS["modulos_config/*.yaml"]
-        SAIDA["saida/*.kicad_mod\nsaida/*.kicad_sym\nsaida/*.step"]
-        BIBK["biblioteca_kicad/"]
-    end
-
-    DUAL --> YAML_ED
-    DUAL --> FP_2D
-    DUAL --> SYM_2D
-    DUAL --> BIB
-
-    FP_2D --> CANVAS
-    SYM_2D --> CANVAS
-
-    YAML_ED -- "Ctrl+Enter" --> UNIV
-    UNIV --> FP
-    UNIV --> SYM
-    FP --> GEO
-
-    YAML_ED --> YAMLS
-    UNIV --> SAIDA
-    EXP --> BIBK
-    VER --> SAIDA
-
-    DUAL -. "core/runner_stub.py" .-> CQ_ED
-
-    style Interface fill:#1E1E2E,stroke:#89B4FA,color:#CDD6F4
-    style GUI fill:#1E1E2E,stroke:#A6E3A1,color:#CDD6F4
-    style Core fill:#1E1E2E,stroke:#F9E2AF,color:#CDD6F4
-    style Dados fill:#1E1E2E,stroke:#F38BA8,color:#CDD6F4
-```
+> KiCad, Eagle, Altium and Fusion 360 are trademarks of their respective owners. This project is **not affiliated with or endorsed by** any of them; it only reads/writes their documented file formats for interoperability.
 
 ---
 
-## 📄 Formato YAML
-
-Cada componente é descrito por um arquivo YAML em `modulos_config/`.
-Abaixo, um exemplo de resistor PTH axial:
-
-```yaml
-# Resistor 470Ω PTH axial — pacote 0.5W
-nome: "R_Axial_470R"
-tipo: "resistor_pth"
-
-corpo:
-  comprimento: 6.0
-  diametro: 2.5
-
-pinos:
-  espacamento: 10.16
-  diametro_pad: 1.8
-  diametro_furo: 0.8
-
-kicad:
-  referencia: "R?"
-  valor: "470R"
-  descricao: "Resistor 470R 0.5W PTH axial"
-  tags: "resistor pth axial 470r"
-  modelo_3d: "R_Axial_470R.step"
-
-margens:
-  courtyard: 0.5
-  silkscreen: 0.12
-  fab_line: 0.10
-```
-
-### Campos principais
-
-| Campo | Descrição |
-|---|---|
-| `nome` | Nome do componente (usado como nome do arquivo de saída) |
-| `tipo` | Tipo de encapsulamento (ver tabela de tipos acima) |
-| `corpo` | Dimensões físicas do corpo (variam por tipo) |
-| `pinos` | Configuração de pinos: pitch, diâmetro, furos, lados (castellated) |
-| `pinos.overrides` | Sobreposições de tamanho para pinos específicos (ex: VCC/GND maiores) |
-| `pinos.lados` | Distribuição de pinos por lado — para castellated 4 lados |
-| `pcb` | Dimensões da PCB do módulo (apenas castellated) |
-| `kicad` | Metadados KiCad: referência, valor, descrição, tags, caminho do 3D |
-| `margens` | Courtyard, silkscreen e fab line widths |
-| `modelo_3d_python` | Código CadQuery inline para modelo 3D customizado (opcional) |
-
-> [!TIP]
-> Use o arquivo `modulos_config/_template.yaml` como ponto de partida para
-> novos componentes — ele contém todos os campos documentados.
-
----
-
-## ⌨️ Atalhos de Teclado
-
-| Atalho | Ação |
-|---|---|
-| `Ctrl+Enter` | 🔄 Gerar footprint + símbolo + modelo 3D |
-| `F5` | 🔄 Gerar (alternativo, redireciona para o fluxo completo) |
-| `Ctrl+S` | 💾 Salvar YAML |
-| `Ctrl+N` | ✨ Novo componente (a partir do template) |
-| `Ctrl+D` | 📋 Duplicar componente atual |
-| `Ctrl+P` | 📌 Abrir editor de pinagem |
-| `Ctrl+Q` | 🔧 Abrir/editar código CadQuery do modelo 3D |
-| `Ctrl+Shift+V` | 🔬 Verificar footprints (validação DRC) |
-| `Ctrl+Z` | ↩ Desfazer |
-| `Ctrl+Y` | ↪ Refazer |
-| `Home` | 🏠 Ajustar visualização (fit to view) |
-| `+` / `-` | 🔍 Zoom in / Zoom out (nos viewers 2D) |
-| `←` `→` `↑` `↓` | 🧭 Pan (navegação nos viewers 2D) |
-| `Scroll` | 🔍 Zoom centrado no cursor |
-
----
-
-## Licença
-
-Este projeto é distribuído sob a **GNU General Public License v3.0** (GPL-3.0-or-later).
-
-Veja o arquivo [LICENSE](LICENSE) para detalhes completos e [NOTICE](NOTICE) para atribuições de terceiros.
-
----
-
-<p align="center">
-  <sub>Construído com 💜 usando PyQt5 · CadQuery · KicadModTree</sub>
-</p>
+<p align="center"><sub>Built with 💜 using PyQt5 · CadQuery · KicadModTree</sub></p>

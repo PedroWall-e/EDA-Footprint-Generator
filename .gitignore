@@ -24,6 +24,7 @@ erro_log.txt
 # Build
 build/dist/
 build/work/
+build/pcm/
 *.spec
 *.egg-info/
 dist/

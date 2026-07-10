@@ -1,0 +1,53 @@
+name: 🐛 Bug report
+description: Something generated the wrong output or crashed
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! A footprint/symbol/3D bug is only useful if it can be reproduced — please attach the YAML.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you get instead?
+      placeholder: "The courtyard overlaps pad 1 on a SOT-23 generated from the YAML below…"
+    validations:
+      required: true
+  - type: textarea
+    id: yaml
+    attributes:
+      label: Component YAML
+      description: The exact YAML that reproduces the problem (or attach the file).
+      render: yaml
+    validations:
+      required: true
+  - type: dropdown
+    id: output
+    attributes:
+      label: Which output is affected?
+      multiple: true
+      options:
+        - Footprint (.kicad_mod)
+        - Symbol (.kicad_sym)
+        - 3D model (.step)
+        - Export (Eagle / Altium / BOM)
+        - Validation (IPC / Schema / DRC)
+        - GUI / CLI / API / plugin
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Environment
+      description: OS, Python version, KiCad version, and how you ran it (GUI / CLI / API / plugin).
+      placeholder: "Windows 11 · Python 3.12 · KiCad 8 · CLI"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / traceback
+      description: Paste the full error output if any (set CAD_FRONTIER_DEBUG=1 for verbose 3D logs).
+      render: shell
