@@ -71,7 +71,8 @@ def cmd_gerar(args):
 
     nome = dados.get('nome', 'componente')
     saida = args.output or os.path.join(PROJ_DIR, 'saida')
-    os.makedirs(saida, exist_ok=True)
+    if not getattr(args, 'dry_run', False):
+        os.makedirs(saida, exist_ok=True)
     apenas = args.apenas
     resultados = {}
     erros = []
@@ -96,6 +97,29 @@ def cmd_gerar(args):
             return 1
     except ImportError:
         pass
+
+    # --- Dry-run: validate + report planned outputs, write nothing ---
+    if getattr(args, 'dry_run', False):
+        planned = []
+        if not apenas or apenas == 'footprint':
+            planned.append(os.path.join(saida, f"{nome}.kicad_mod"))
+        if not apenas or apenas == 'symbol':
+            planned.append(os.path.join(saida, f"{nome}.kicad_sym"))
+        if not apenas or apenas == '3d':
+            planned.append(os.path.join(saida, f"{nome}.step"))
+        if args.json:
+            print(json.dumps({
+                "ok": True,
+                "dry_run": True,
+                "nome": nome,
+                "saida": saida,
+                "planned": planned,
+            }, ensure_ascii=False, indent=2))
+        else:
+            print(f"DRY-RUN: would generate for '{nome}' into {saida}/")
+            for path in planned:
+                print(f"  would write: {path}")
+        return 0
 
     # --- Footprint 2D ---
     if not apenas or apenas == 'footprint':
@@ -254,7 +278,8 @@ def cmd_batch(args):
     import yaml
     pasta = args.pasta
     saida = args.output or os.path.join(PROJ_DIR, 'saida')
-    os.makedirs(saida, exist_ok=True)
+    if not getattr(args, 'dry_run', False):
+        os.makedirs(saida, exist_ok=True)
 
     yamls = sorted([
         f for f in os.listdir(pasta)
@@ -365,6 +390,8 @@ def main():
     p_gerar.add_argument('-o', '--output', help='Diretório de saída')
     p_gerar.add_argument('--apenas', choices=['footprint', 'symbol', '3d'],
                          help='Gerar apenas um tipo de saída')
+    p_gerar.add_argument('--dry-run', action='store_true',
+                        help='Validar e listar arquivos que seriam gerados, sem escrever')
     p_gerar.set_defaults(func=cmd_gerar)
 
     # validar

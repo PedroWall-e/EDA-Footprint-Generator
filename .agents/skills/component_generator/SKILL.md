@@ -25,6 +25,7 @@ Tudo a partir de um **arquivo YAML** que descreve o componente.
 
 ```bash
 # Gerar componente completo
+python cli.py gerar componente.yaml --dry-run  # validate only
 python cli.py gerar modulos_config/NE555_DIP8.yaml -o saida/
 
 # Gerar com saída JSON (para parsing programático)
