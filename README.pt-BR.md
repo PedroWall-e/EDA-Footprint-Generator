@@ -1,4 +1,4 @@
-# 🏭 Plataforma CAM/CAD Data Frontier
+# 🏭 EDA Footprint Generator
 
 > Gerador paramétrico de **footprints** (`.kicad_mod`), **símbolos esquemáticos** (`.kicad_sym`) e **modelos 3D STEP** para o KiCad — tudo a partir de arquivos YAML.
 
@@ -6,7 +6,7 @@
 
 ## 📋 Visão Geral
 
-A **Plataforma CAM/CAD Data Frontier** é uma aplicação desktop construída sobre o
+A **EDA Footprint Generator** é uma aplicação desktop construída sobre o
 [CQ-Editor](https://github.com/CadQuery/CQ-editor) (PyQt5 + CadQuery) que permite
 projetar componentes eletrônicos de forma declarativa.
 

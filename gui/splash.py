@@ -117,7 +117,7 @@ class SplashScreen(QSplashScreen):
         font_title = QFont('Segoe UI', 16, QFont.Bold)
         p.setFont(font_title)
         p.setPen(QPen(self._TEXT))
-        p.drawText(QRectF(0, 115, W, 30), Qt.AlignCenter, 'Plataforma CAM-CAD Data Frontier')
+        p.drawText(QRectF(0, 115, W, 30), Qt.AlignCenter, 'EDA Footprint Generator')
 
         # --- Versão ---
         font_ver = QFont('Segoe UI', 10)

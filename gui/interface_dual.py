@@ -440,7 +440,7 @@ def _setup_signals(win, panels, docks, paths):
 
     # Título dinâmico
     def _atualizar_titulo(yaml_path=''):
-        base = 'Plataforma CAM/CAD Data Frontier'
+        base = 'EDA Footprint Generator'
         if yaml_path:
             nome = os.path.basename(yaml_path).replace('.yaml', '').replace('.yml', '')
             win.setWindowTitle(f'{nome} — {base}')
@@ -1159,7 +1159,7 @@ def _setup_ajuda_menu(win, dock_help=None, toggle_help=None):
         from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel as _QLabel, QDialogButtonBox
 
         dlg = QDialog(win)
-        dlg.setWindowTitle('Sobre — Plataforma CAM-CAD Data Frontier')
+        dlg.setWindowTitle('Sobre — EDA Footprint Generator')
         dlg.setFixedSize(480, 340)
         dlg.setStyleSheet(
             'QDialog { background:#1E1E2E; }'
@@ -1171,7 +1171,7 @@ def _setup_ajuda_menu(win, dock_help=None, toggle_help=None):
         lay.setSpacing(8)
 
         # Título
-        title = _QLabel('Plataforma CAM-CAD Data Frontier')
+        title = _QLabel('EDA Footprint Generator')
         title.setStyleSheet(
             'font-size:18px; font-weight:bold; color:#89B4FA; padding-bottom:4px;'
         )
@@ -1684,7 +1684,7 @@ def main():
     win = MainWindow(
         filename=paths['script'] if os.path.isfile(paths['script']) else None
     )
-    win.setWindowTitle('Plataforma CAM/CAD Data Frontier')
+    win.setWindowTitle('EDA Footprint Generator')
     # Definir ícone da janela
     _icon_path = os.path.join(PROJ_DIR, 'assets', 'app_icon.ico')
     if os.path.isfile(_icon_path):

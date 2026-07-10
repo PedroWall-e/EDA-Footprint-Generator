@@ -1,5 +1,5 @@
 # =============================================================================
-# ROTINA DE TESTES — Plataforma CAM-CAD Data Frontier v2.0
+# ROTINA DE TESTES — EDA Footprint Generator v2.0
 # =============================================================================
 # Execute este script a partir da pasta do projeto:
 #   python teste_v2.py
@@ -1232,7 +1232,7 @@ if __name__ == '__main__':
 
     sys.path.append(os.path.join(PROJ, 'libs'))
     print("\n" + "="*70)
-    print("  ROTINA DE TESTES - Plataforma CAM-CAD Data Frontier v2.0")
+    print("  ROTINA DE TESTES - EDA Footprint Generator v2.0")
     print("="*70)
 
     test_grupo1()   # Imports

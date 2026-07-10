@@ -191,7 +191,7 @@ def _gerar_pdf(componentes, pdf_path, opcoes):
                      f'Tipo: {tipo}  \u2502  '
                      f'Escala: {escala_str}  \u2502  '
                      f'Data: {data_str}  \u2502  '
-                     f'Gerado por Plataforma CAM-CAD Data Frontier v{__version__}',
+                     f'Gerado por EDA Footprint Generator v{__version__}',
                      fontsize=7, color='#616161', fontfamily='sans-serif')
 
             # ── Panel 1: Footprint 2D (top-left, large) ──
@@ -474,7 +474,7 @@ def _draw_validation_info(ax, dados):
 
     lines.append('')
     lines.append(f'Data: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}')
-    lines.append(f'Plataforma CAM-CAD Data Frontier v{__version__}')
+    lines.append(f'EDA Footprint Generator v{__version__}')
 
     text = '\n'.join(lines)
     ax.text(0.05, 0.95, text, transform=ax.transAxes,
@@ -502,7 +502,7 @@ def _gerar_html(componentes, html_path, opcoes):
     html_parts.append('<!DOCTYPE html>')
     html_parts.append('<html lang="pt-BR"><head><meta charset="UTF-8">')
     html_parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
-    html_parts.append('<title>Relat\u00f3rio T\u00e9cnico \u2014 Data Frontier</title>')
+    html_parts.append('<title>Relat\u00f3rio T\u00e9cnico \u2014 EDA Footprint Generator</title>')
     html_parts.append('<style>')
     html_parts.append('''
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5;
@@ -560,7 +560,7 @@ def _gerar_html(componentes, html_path, opcoes):
         html_parts.append(f'<div class="meta">Tipo: {_html_escape(tipo)} \u2502 '
                           f'Escala: {escala_str} \u2502 '
                           f'Data: {data_str} \u2502 '
-                          f'Data Frontier v{__version__}</div>')
+                          f'EDA Footprint Generator v{__version__}</div>')
 
         html_parts.append('<div class="grid">')
 
@@ -599,7 +599,7 @@ def _gerar_html(componentes, html_path, opcoes):
         # Footer
         html_parts.append(
             f'<div class="footer">Gerado em {data_str} por '
-            f'Plataforma CAM-CAD Data Frontier v{__version__}</div>'
+            f'EDA Footprint Generator v{__version__}</div>'
         )
 
         html_parts.append('</div>')  # end page

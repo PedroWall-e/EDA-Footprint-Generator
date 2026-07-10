@@ -1,5 +1,5 @@
 # =============================================================================
-# TESTES GUI — Plataforma CAM-CAD Data Frontier
+# TESTES GUI — EDA Footprint Generator
 # =============================================================================
 # Testa funções de lógica pura e widgets PyQt5 da GUI.
 #
@@ -206,7 +206,7 @@ def test_grupo3():
 # =============================================================================
 if __name__ == '__main__':
     print("\n" + "="*70, flush=True)
-    print("  TESTES GUI - Plataforma CAM-CAD Data Frontier", flush=True)
+    print("  TESTES GUI - EDA Footprint Generator", flush=True)
     print("="*70, flush=True)
 
     test_grupo1()   # Lógica pura (sem PyQt5)

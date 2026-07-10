@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =============================================================================
 # api_server.py
-# API REST para a plataforma CAM/CAD Data Frontier.
+# API REST para a EDA Footprint Generator.
 #
 # Uso:
 #   pip install fastapi uvicorn
@@ -47,7 +47,7 @@ except ImportError:
 # =============================================================================
 
 app = FastAPI(
-    title="Data Frontier API",
+    title="EDA Footprint Generator API",
     description="API para geração automatizada de componentes eletrônicos (footprint, símbolo, 3D)",
     version="1.0.0",
     docs_url="/docs",
@@ -290,7 +290,7 @@ async def api_batch(req: BatchRequest):
 async def root():
     """Health check e informações da API."""
     return {
-        "nome": "Data Frontier API",
+        "nome": "EDA Footprint Generator API",
         "versao": "1.0.0",
         "docs": "/docs",
         "endpoints": [
@@ -313,7 +313,7 @@ async def root():
 if __name__ == '__main__':
     import uvicorn
     print("="*60)
-    print("  Data Frontier API")
+    print("  EDA Footprint Generator API")
     print("  http://localhost:8042")
     print("  Docs: http://localhost:8042/docs")
     print("="*60)

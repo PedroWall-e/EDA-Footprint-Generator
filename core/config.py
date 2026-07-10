@@ -1,6 +1,6 @@
 # =============================================================================
 # core/config.py
-# Configurações persistentes da plataforma CAM-CAD Data Frontier.
+# Configurações persistentes da EDA Footprint Generator.
 # Usa QSettings para salvar preferências do usuário entre sessões.
 # =============================================================================
 

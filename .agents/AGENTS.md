@@ -1,4 +1,4 @@
-# Plataforma CAM/CAD Data Frontier — Regras para Agentes
+# EDA Footprint Generator — Regras para Agentes
 
 ## Sobre o Projeto
 

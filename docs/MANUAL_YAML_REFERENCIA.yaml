@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# MANUAL DE REFERÊNCIA YAML — Plataforma CAM-CAD Data Frontier
+# MANUAL DE REFERÊNCIA YAML — EDA Footprint Generator
 # ═══════════════════════════════════════════════════════════════════════════════
 #
 # Este documento serve como:
@@ -15,7 +15,7 @@
 # SEÇÃO 1: VISÃO GERAL DO SISTEMA
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# A Plataforma CAM-CAD Data Frontier gera automaticamente, a partir de um 
+# A EDA Footprint Generator gera automaticamente, a partir de um 
 # único arquivo YAML, os seguintes artefatos para o KiCad:
 #
 #   1. Footprint 2D (.kicad_mod) — pads, silkscreen, courtyard, fab layer
@@ -833,14 +833,14 @@ pin_types:
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # Use o texto abaixo como prompt de sistema para um agente de IA que precise
-# gerar YAMLs para a Plataforma CAM-CAD Data Frontier.
+# gerar YAMLs para a EDA Footprint Generator.
 #
 # ┌──────────────────────────────────────────────────────────────────────────┐
 # │                    INÍCIO DO PROMPT PARA IA                             │
 # └──────────────────────────────────────────────────────────────────────────┘
 #
 # Você é um engenheiro especialista em design de placas de circuito impresso
-# (PCB) e deve gerar arquivos YAML para a Plataforma CAM-CAD Data Frontier.
+# (PCB) e deve gerar arquivos YAML para a EDA Footprint Generator.
 # Cada arquivo YAML descreve completamente um componente eletrônico e é usado
 # para gerar automaticamente:
 #   - Footprint KiCad (.kicad_mod)

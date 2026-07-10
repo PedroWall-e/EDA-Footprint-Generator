@@ -500,7 +500,7 @@ pinos:
 <hr>
 
 <p style="text-align:center; color:{S['muted']}; font-size:11px; margin-top:20px;">
-  Plataforma CAM-CAD Data Frontier &mdash; Pressione <code>F1</code> para abrir/fechar &mdash; v{__version__}
+  EDA Footprint Generator &mdash; Pressione <code>F1</code> para abrir/fechar &mdash; v{__version__}
 </p>
 
 </body></html>'''

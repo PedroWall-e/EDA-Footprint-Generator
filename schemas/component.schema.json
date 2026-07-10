@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://cam-cad-data-frontier.github.io/schemas/component.schema.json",
-  "title": "Componente CAM-CAD Data Frontier",
-  "description": "Schema JSON para arquivos YAML de componentes da Plataforma CAM-CAD Data Frontier. Define a estrutura completa para geração automática de footprints (.kicad_mod), símbolos (.kicad_sym) e modelos 3D (.step) para o KiCad.",
+  "title": "Componente EDA Footprint Generator",
+  "description": "Schema JSON para arquivos YAML de componentes da EDA Footprint Generator. Define a estrutura completa para geração automática de footprints (.kicad_mod), símbolos (.kicad_sym) e modelos 3D (.step) para o KiCad.",
   "type": "object",
   "required": ["nome"],
 

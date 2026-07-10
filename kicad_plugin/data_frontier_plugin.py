@@ -1,5 +1,5 @@
 """
-Data Frontier Footprint Generator — Plugin KiCad (pcbnew).
+EDA Footprint Generator — Plugin KiCad (pcbnew).
 
 Este plugin adiciona uma ação ao menu do PCB Editor do KiCad que permite
 gerar footprints a partir de definições YAML e importá-los diretamente
@@ -7,7 +7,7 @@ no PCB atual.
 
 Requisitos:
   - KiCad 7.x ou 8.x com pcbnew Python API
-  - Plataforma Data Frontier instalada (core/ com gerador_footprint.py)
+  - Plataforma EDA Footprint Generator instalada (core/ com gerador_footprint.py)
   - PyYAML (pip install pyyaml)
 
 Instalação:
@@ -16,7 +16,7 @@ Instalação:
      - Linux:   ~/.local/share/kicad/<version>/scripting/plugins/
      - macOS:   ~/Library/Preferences/kicad/<version>/scripting/plugins/
   2. Reinicie o KiCad
-  3. O plugin aparecerá em: Tools → External Plugins → Data Frontier
+  3. O plugin aparecerá em: Tools → External Plugins → EDA Footprint Generator
 
 Uso via kicad-cli:
   kicad-cli fp-lib-table --add <library_path> --name DataFrontier
@@ -50,7 +50,7 @@ def _get_plugin_dir():
 
 
 def _get_project_dir():
-    """Retorna o diretório raiz do projeto Data Frontier."""
+    """Retorna o diretório raiz do projeto EDA Footprint Generator."""
     plugin_dir = _get_plugin_dir()
     # O plugin está em: <project>/kicad_plugin/
     return os.path.dirname(plugin_dir)
@@ -73,7 +73,7 @@ def _load_metadata():
             return json.load(f)
     except Exception:
         return {
-            'name': 'Data Frontier Footprint Generator',
+            'name': 'EDA Footprint Generator',
             'version': '2.0.0',
         }
 
@@ -174,7 +174,7 @@ if _IN_KICAD:
             meta = _load_metadata()
             super().__init__(
                 parent,
-                title=meta.get('name', 'Data Frontier'),
+                title=meta.get('name', 'EDA Footprint Generator'),
                 size=(520, 380),
                 style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
             )
@@ -192,7 +192,7 @@ if _IN_KICAD:
 
             # Título
             title = wx.StaticText(
-                panel, label='Data Frontier — Footprint Generator')
+                panel, label='EDA Footprint Generator — Footprint Generator')
             title_font = title.GetFont()
             title_font.SetPointSize(14)
             title_font.MakeBold()
@@ -345,7 +345,7 @@ if _IN_KICAD:
 
         def defaults(self):
             meta = _load_metadata()
-            self.name = meta.get('name', 'Data Frontier Footprint Generator')
+            self.name = meta.get('name', 'EDA Footprint Generator')
             self.category = 'Footprint Generation'
             self.description = meta.get(
                 'description', 'Generate footprints from YAML definitions')
@@ -376,7 +376,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='Data Frontier Footprint Generator — KiCad Plugin')
+        description='EDA Footprint Generator — KiCad Plugin')
     parser.add_argument('yaml_file', help='Arquivo YAML do componente')
     parser.add_argument('-o', '--output', help='Diretório de saída',
                         default=None)

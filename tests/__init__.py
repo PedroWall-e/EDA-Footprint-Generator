@@ -1,1 +1,1 @@
-# Pacote de testes da Plataforma CAM-CAD Data Frontier
+# Pacote de testes da EDA Footprint Generator

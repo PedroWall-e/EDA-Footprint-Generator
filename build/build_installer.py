@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =============================================================================
 # build/build_installer.py
-# Script de build para gerar o instalador da Plataforma CAM-CAD Data Frontier
+# Script de build para gerar o instalador da EDA Footprint Generator
 # usando PyInstaller.
 #
 # Uso:  python build/build_installer.py
@@ -35,7 +35,7 @@ def build():
     ]
 
     print('╔══════════════════════════════════════════════════════════╗')
-    print('║  Build — Plataforma CAM-CAD Data Frontier               ║')
+    print('║  Build — EDA Footprint Generator               ║')
     print('╠══════════════════════════════════════════════════════════╣')
     print(f'║  Projeto : {PROJ}')
     print(f'║  Saída   : {os.path.join(PROJ, "build", "dist")}')

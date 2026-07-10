@@ -1,6 +1,6 @@
 # =============================================================================
 # gui/wizard_componente.py
-# Wizard de criação de componente — Plataforma CAM-CAD Data Frontier
+# Wizard de criação de componente — EDA Footprint Generator
 #
 # QWizard com 4 páginas:
 #   1. Tipo do componente

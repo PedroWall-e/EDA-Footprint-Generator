@@ -5,6 +5,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ## [Não lançado]
 
+### Alterado
+- **Renomeado o produto de "Data Frontier" para "EDA Footprint Generator"** em toda a interface, documentação e nome do plugin. Identificadores técnicos (`com.datafrontier.footprint-generator`, `DataFrontier.kicad_sym`, chaves de config) e autor/copyright foram mantidos para não quebrar compatibilidade.
+- Ícone do app/plugin passa a exibir "EDA" no lugar de "CAD"
+- Plugin PCM re-lançado como v3.0.1 com o novo nome
+
 ### Adicionado
 - README em inglês (`README.md`) como página de produto; versão PT-BR movida para `README.pt-BR.md`
 - Templates de issue (bug/feature) e de Pull Request em `.github/`

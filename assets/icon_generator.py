@@ -72,7 +72,7 @@ def generate_icon_pillow():
                 except (IOError, OSError):
                     font = ImageFont.load_default()
 
-            text = 'CAD'
+            text = 'EDA'
             bbox = draw.textbbox((0, 0), text, font=font)
             tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             tx = cx - tw / 2

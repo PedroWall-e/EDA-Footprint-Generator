@@ -59,7 +59,7 @@ def main():
     if font is None:
         font = ImageFont.load_default()
 
-    text = 'CAD'
+    text = 'EDA'
     bbox = draw.textbbox((0, 0), text, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text((cx - tw / 2, cy - th / 2 - bbox[1]), text,

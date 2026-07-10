@@ -1,5 +1,5 @@
 #!/bin/bash
-# Launcher cross-platform para a Plataforma CAM-CAD Data Frontier
+# Launcher cross-platform para a EDA Footprint Generator
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 

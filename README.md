@@ -1,12 +1,12 @@
 <p align="right"><a href="README.pt-BR.md">🇧🇷 Português</a></p>
 
-# 🏭 Data Frontier — Parametric EDA Component Generator
+# 🏭 EDA Footprint Generator — Parametric footprints, symbols & 3D from YAML
 
 > Stop hand-drawing footprints. Describe a component once in **YAML** and generate the **KiCad footprint** (`.kicad_mod`), **schematic symbol** (`.kicad_sym`) and **3D model** (`.step`) in one shot — validated against **IPC-7351B** before anything is written.
 
 [![CI](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![KiCad 6+](https://img.shields.io/badge/KiCad-6%20%7C%207%20%7C%208-brightgreen.svg)](https://www.kicad.org/)
 
 ---
@@ -15,7 +15,7 @@
 
 Drawing a footprint by hand is slow and, worse, **error-prone** — a pad 0.2 mm off, a courtyard that overlaps, an annular ring below spec, and you find out when the board comes back from fab. Existing part libraries help only if *your* exact part is already in them.
 
-**Data Frontier** takes a different route: you describe the component's physical parameters (body size, pin pitch, package type) in a small YAML file, and it generates a **complete, standards-checked** footprint + symbol + 3D model. The same source produces exports for **KiCad, Eagle and Altium**, and the STEP model drops straight into **Fusion 360**.
+**EDA Footprint Generator** takes a different route: you describe the component's physical parameters (body size, pin pitch, package type) in a small YAML file, and it generates a **complete, standards-checked** footprint + symbol + 3D model. The same source produces exports for **KiCad, Eagle and Altium**, and the STEP model drops straight into **Fusion 360**.
 
 ```yaml
 # resistor_470R.yaml — the whole component in 20 lines
@@ -43,7 +43,7 @@ Footprint mistakes become **manufacturing mistakes**. So every generation is che
 - **IPC-7351B validation** — pad-to-pad clearance, courtyard excess, annular ring, silkscreen-to-pad. Errors **abort** generation; warnings are surfaced. ([`core/validador_ipc.py`](core/validador_ipc.py))
 - **JSON Schema** — the component structure is validated against a formal schema. ([`schemas/component.schema.json`](schemas/component.schema.json))
 - **DRC** — 8 configurable design-rule checks on the generated footprint. ([`core/verificador_drc.py`](core/verificador_drc.py))
-- **CI** — 107 automated tests run on **Windows + Linux** across **Python 3.9 / 3.11 / 3.12** on every push.
+- **CI** — 127 automated tests run on **Windows + Linux** across **Python 3.10 / 3.11 / 3.12** on every push.
 
 ---
 
@@ -107,13 +107,13 @@ Edit the YAML on the left, press `Ctrl+Enter`, and see the 2D footprint, schemat
 
 Because you'll compare anyway — here's an honest take:
 
-| Tool | Approach | Where Data Frontier differs |
+| Tool | Approach | Where EDA Footprint Generator differs |
 |---|---|---|
-| **[kicad-footprint-generator](https://gitlab.com/kicad/libraries/kicad-footprint-generator)** (official) | Python scripts, no GUI | Data Frontier adds a GUI, a declarative YAML layer, symbol + 3D in one run, and multi-EDA export |
-| **SnapEDA / Ultra Librarian** | Download pre-made parts | Data Frontier *generates* parametrically — works for parts not in any library, and you own the source |
+| **[kicad-footprint-generator](https://gitlab.com/kicad/libraries/kicad-footprint-generator)** (official) | Python scripts, no GUI | EDA Footprint Generator adds a GUI, a declarative YAML layer, symbol + 3D in one run, and multi-EDA export |
+| **SnapEDA / Ultra Librarian** | Download pre-made parts | EDA Footprint Generator *generates* parametrically — works for parts not in any library, and you own the source |
 | **Component Search Engine** | Vendor part catalog | No account, no per-part download; describe the package and generate offline |
 
-If your exact part already exists in a library, grabbing it there is faster. Data Frontier wins when you need a **custom or uncommon package**, want **KiCad + Eagle + Altium + 3D from one definition**, or want the generation **IPC-checked and reproducible** in CI.
+If your exact part already exists in a library, grabbing it there is faster. EDA Footprint Generator wins when you need a **custom or uncommon package**, want **KiCad + Eagle + Altium + 3D from one definition**, or want the generation **IPC-checked and reproducible** in CI.
 
 ---
 

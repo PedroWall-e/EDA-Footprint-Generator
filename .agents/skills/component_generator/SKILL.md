@@ -2,7 +2,7 @@
 name: data-frontier-component-generator
 description: |
   Skill para criar componentes eletrônicos (footprint KiCad, símbolo esquemático, modelo 3D STEP)
-  usando a plataforma CAM/CAD Data Frontier. Use esta skill quando o usuário pedir para criar,
+  usando a EDA Footprint Generator. Use esta skill quando o usuário pedir para criar,
   gerar ou projetar um componente eletrônico, footprint, símbolo, ou modelo 3D para KiCad.
   Palavras-chave: componente, footprint, KiCad, PCB, SMD, PTH, BGA, SOIC, DIP, STEP, 3D,
   esquemático, símbolo, resistor, capacitor, CI, conector, diodo, LED, transistor.

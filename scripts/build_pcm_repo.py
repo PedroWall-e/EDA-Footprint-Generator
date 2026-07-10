@@ -77,7 +77,7 @@ def main():
     now = int(time.time())
     repo_doc = {
         '$schema': 'https://go.kicad.org/pcm/schemas/v1',
-        'name': 'Data Frontier PCM Repository',
+        'name': 'EDA Footprint Generator PCM Repository',
         'maintainer': meta.get('maintainer', meta.get('author')),
         'packages': {
             'url': f"{args.pages_base}/packages.json",

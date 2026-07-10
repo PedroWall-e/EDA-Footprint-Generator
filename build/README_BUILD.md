@@ -1,4 +1,4 @@
-# Build — Plataforma CAM-CAD Data Frontier
+# Build — EDA Footprint Generator
 
 ## Pré-requisitos
 

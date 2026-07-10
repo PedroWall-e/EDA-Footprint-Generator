@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =============================================================================
 # cli.py
-# CLI para a plataforma CAM/CAD Data Frontier.
+# CLI para a EDA Footprint Generator.
 #
 # Uso:
 #   python cli.py gerar componente.yaml -o saida/
@@ -350,7 +350,7 @@ def cmd_schema(args):
 def main():
     parser = argparse.ArgumentParser(
         prog='datafrontier',
-        description='Plataforma CAM/CAD Data Frontier — CLI para geração de componentes eletrônicos',
+        description='EDA Footprint Generator — CLI para geração de componentes eletrônicos',
     )
     parser.add_argument('--json', action='store_true',
                         help='Saída em formato JSON (para agentes IA)')

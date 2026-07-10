@@ -1,4 +1,4 @@
-# Contribuindo para a Plataforma CAM-CAD Data Frontier
+# Contribuindo para a EDA Footprint Generator
 
 Obrigado pelo interesse em contribuir! Este guia ajuda a manter a qualidade do projeto.
 
