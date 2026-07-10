@@ -4,6 +4,25 @@ NOTICE — Atribuições de Terceiros
 Plataforma CAM-CAD Data Frontier
 Copyright (c) 2026 Data Frontier
 
+===========================================================================
+LICENÇA DESTE SOFTWARE
+===========================================================================
+
+Este projeto é distribuído sob a GNU General Public License v3.0 ou posterior
+(GPL-3.0-or-later). O texto completo da licença está no arquivo LICENSE.
+
+A escolha da GPL v3 NÃO é opcional: ela é imposta pelos componentes GPL que
+este software utiliza e linka em tempo de execução:
+
+  - KicadModTree (GPL v3+)          — Thomas Pointhuber
+  - kicad-footprint-generator (GPL v3+) — Thomas Pointhuber
+  - kicad-library-utils (GPL v3)    — KiCad Project
+  - PyQt5 (GPL v3, ou comercial)    — Riverbank Computing Limited
+
+Pela cláusula copyleft da GPL, o trabalho combinado deve ser licenciado sob a
+GPL v3. As demais dependências (Apache-2.0, MIT, BSD, PSF) são permissivas e
+compatíveis com a GPL v3, mas não alteram essa obrigação.
+
 Este software inclui ou depende dos seguintes componentes de terceiros:
 
 ===========================================================================

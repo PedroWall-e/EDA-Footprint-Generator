@@ -12,6 +12,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Empacotamento para o KiCad PCM: `metadata.json` no schema oficial, `scripts/build_pcm_package.py`, guia `kicad_plugin/README_PCM.md` e workflow `release-pcm.yml`
 - Seção de "good first issues" no `CONTRIBUTING.md`
 
+### Corrigido
+- `LICENSE` agora contém o texto completo e verbatim da GPL-3.0 (antes só o cabeçalho), permitindo a detecção correta da licença pelo GitHub e cumprindo a exigência da GPL de distribuir o texto integral
+- Nota explicativa "por que GPL" movida do `LICENSE` para o `NOTICE`
+- URL de Homepage corrigida no `pyproject.toml` (apontava para repositório inexistente); adicionadas URLs de Repository e Issues
+
 ## [3.0.0] - 2026-06-16
 
 ### Adicionado
