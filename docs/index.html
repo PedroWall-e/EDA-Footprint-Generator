@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Frontier — Parametric EDA Component Generator</title>
+<meta name="description" content="Describe a component in YAML and generate KiCad footprint, symbol and 3D STEP in one shot — IPC-7351B validated. Exports to KiCad, Eagle, Altium.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231e1e2e'/%3E%3Cpolygon points='32,10 51,21 51,43 32,54 13,43 13,21' fill='%2394c5d1'/%3E%3Ctext x='32' y='38' font-family='monospace' font-size='14' fill='%23181825' text-anchor='middle'%3ECAD%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --base:#1e1e2e; --mantle:#181825; --crust:#11111b;
+    --s0:#313244; --s1:#45475a; --text:#cdd6f4; --sub:#a6adc8;
+    --blue:#89b4fa; --green:#a6e3a1; --mauve:#cba6f7; --peach:#fab387;
+    --yellow:#f9e2af; --red:#f38ba8;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--base); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--blue); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px}
+  code,kbd{font-family:"SF Mono",Consolas,"Roboto Mono",monospace}
+
+  /* Hero */
+  header.hero{
+    text-align:center; padding:72px 20px 56px;
+    background:radial-gradient(1200px 400px at 50% -50px, rgba(137,180,250,.18), transparent 70%);
+    border-bottom:1px solid var(--s0);
+  }
+  .logo{
+    width:76px; height:76px; margin:0 auto 18px; display:block;
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.4));
+  }
+  h1{font-size:2.4rem; margin:0 0 10px; letter-spacing:-.5px}
+  .tag{font-size:1.2rem; color:var(--sub); max-width:640px; margin:0 auto 26px}
+  .badges{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px}
+  .badges img{height:20px}
+  .cta{display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+  .btn{
+    display:inline-block; padding:12px 22px; border-radius:10px; font-weight:600;
+    border:1px solid transparent; transition:transform .08s ease, background .2s;
+  }
+  .btn:hover{text-decoration:none; transform:translateY(-2px)}
+  .btn-primary{background:var(--green); color:var(--crust)}
+  .btn-secondary{background:transparent; border-color:var(--s1); color:var(--text)}
+
+  section{padding:52px 0; border-bottom:1px solid var(--s0)}
+  h2{font-size:1.6rem; margin:0 0 8px}
+  .lead{color:var(--sub); margin:0 0 28px; max-width:720px}
+
+  /* Feature grid */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px}
+  .card{background:var(--mantle); border:1px solid var(--s0); border-radius:14px; padding:20px}
+  .card .ico{font-size:1.5rem}
+  .card h3{margin:.4rem 0 .3rem; font-size:1.05rem}
+  .card p{margin:0; color:var(--sub); font-size:.95rem}
+
+  /* Install */
+  .install{background:var(--mantle); border:1px solid var(--s0); border-radius:14px; padding:24px}
+  .urlrow{display:flex; gap:10px; margin:14px 0 6px; flex-wrap:wrap}
+  .urlrow input{
+    flex:1; min-width:260px; background:var(--crust); border:1px solid var(--s1);
+    color:var(--text); border-radius:8px; padding:12px 14px; font-family:"SF Mono",Consolas,monospace; font-size:.9rem;
+  }
+  .copybtn{background:var(--blue); color:var(--crust); border:none; border-radius:8px; padding:0 18px; font-weight:600; cursor:pointer}
+  .copybtn:hover{opacity:.9}
+  ol{color:var(--sub); padding-left:22px}
+  ol code{background:var(--s0); padding:2px 6px; border-radius:5px; color:var(--text)}
+  pre{
+    background:var(--crust); border:1px solid var(--s0); border-radius:10px;
+    padding:16px; overflow-x:auto; margin:16px 0 0;
+  }
+  pre code{color:var(--text); font-size:.88rem; line-height:1.7}
+  .cm{color:var(--sub)}
+
+  /* Chips */
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{background:var(--s0); border-radius:20px; padding:6px 14px; font-size:.86rem; color:var(--text)}
+
+  footer{padding:40px 20px; text-align:center; color:var(--sub); font-size:.9rem}
+  footer a{margin:0 8px}
+  .note{font-size:.82rem; color:var(--s1); margin-top:18px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <rect width="64" height="64" rx="12" fill="#181825"/>
+      <polygon points="32,12 50,22 50,42 32,52 14,42 14,22" fill="#94c5d1" stroke="#89b4fa"/>
+      <text x="32" y="38" font-family="monospace" font-size="13" fill="#181825" text-anchor="middle">CAD</text>
+    </svg>
+    <h1>Data Frontier</h1>
+    <p class="tag">Stop hand-drawing footprints. Describe a component once in <strong>YAML</strong> and generate the KiCad footprint, schematic symbol and 3D STEP model — validated against <strong>IPC-7351B</strong> before anything is written.</p>
+    <div class="badges">
+      <img src="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/actions/workflows/ci.yml/badge.svg" alt="CI">
+      <img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License GPLv3">
+      <img src="https://img.shields.io/badge/KiCad-6%20%7C%207%20%7C%208-brightgreen.svg" alt="KiCad 6/7/8">
+    </div>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">⬇ Install in KiCad</a>
+      <a class="btn btn-secondary" href="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier">View on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="what">
+  <div class="wrap">
+    <h2>One YAML → three files, checked</h2>
+    <p class="lead">Instead of drawing each pad, silk and courtyard by hand — where a 0.2&nbsp;mm slip becomes a manufacturing defect — you describe the physical parameters and let the platform generate everything, standards-checked and reproducible.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">🦶</div><h3>Footprint</h3><p><code>.kicad_mod</code> — pads, silkscreen, courtyard and fab layers for KiCad 6/7/8.</p></div>
+      <div class="card"><div class="ico">🔣</div><h3>Symbol</h3><p><code>.kicad_sym</code> — schematic symbol with named, typed pins.</p></div>
+      <div class="card"><div class="ico">🧊</div><h3>3D model</h3><p><code>.step</code> — parametric solid via CadQuery. Imports straight into Fusion&nbsp;360.</p></div>
+      <div class="card"><div class="ico">✅</div><h3>IPC-7351B validated</h3><p>Clearance, courtyard, annular ring and silk checks. Errors abort generation.</p></div>
+      <div class="card"><div class="ico">🔄</div><h3>Multi-EDA export</h3><p>KiCad <code>.pretty</code>, Eagle <code>.lbr</code>, Altium CSV and BOM.</p></div>
+      <div class="card"><div class="ico">📐</div><h3>7 pad patterns</h3><p>axial / radial / dual PTH, dual / quad SMD, custom and BGA.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install via the KiCad Plugin &amp; Content Manager</h2>
+    <p class="lead">Add this repository to your KiCad PCM and install with one click.</p>
+    <div class="install">
+      <strong>Repository URL</strong>
+      <div class="urlrow">
+        <input id="pcmurl" readonly value="https://pedrowall-e.github.io/EDA-Footprint-Generator-Data-Frontier/pcm/repository.json">
+        <button class="copybtn" onclick="copyUrl()" id="copybtn">Copy</button>
+      </div>
+      <ol>
+        <li>KiCad → <strong>Plugin and Content Manager</strong> → <strong>Manage…</strong></li>
+        <li>Click <strong>+</strong> and paste the URL above</li>
+        <li>Find <em>Data Frontier Footprint Generator</em> and click <strong>Install</strong></li>
+      </ol>
+    </div>
+
+    <h3 style="margin-top:32px">…or use the CLI</h3>
+    <pre><code><span class="cm"># clone &amp; set up (Windows)</span>
+git clone https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier.git
+cd EDA-Footprint-Generator-Data-Frontier
+.\scripts\setup_ambiente.ps1
+
+<span class="cm"># generate footprint + symbol + 3D from a YAML</span>
+python cli.py gerar modulos_config/NE555_DIP8.yaml -o saida/</code></pre>
+  </div>
+</section>
+
+<section id="packages">
+  <div class="wrap">
+    <h2>Supported packages</h2>
+    <p class="lead">Start from any of the 30+ presets, or describe your own.</p>
+    <div class="chips">
+      <span class="chip">0402 / 0603 / 0805 / 1206</span>
+      <span class="chip">SOT-23 / 223</span>
+      <span class="chip">SSOP · SOIC · DIP</span>
+      <span class="chip">QFN · QFP</span>
+      <span class="chip">BGA</span>
+      <span class="chip">TO-92 / 220 / 247</span>
+      <span class="chip">DPAK</span>
+      <span class="chip">SOD-123 / DO-214</span>
+      <span class="chip">Axial &amp; radial PTH</span>
+      <span class="chip">Pin headers</span>
+      <span class="chip">Castellated RF modules</span>
+      <span class="chip">Coin-cell batteries</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier">GitHub</a> ·
+    <a href="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/releases">Releases</a> ·
+    <a href="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/blob/main/README.md">Docs</a> ·
+    <a href="https://github.com/PedroWall-e/EDA-Footprint-Generator-Data-Frontier/blob/main/LICENSE">License (GPL-3.0)</a>
+    <p class="note">KiCad, Eagle, Altium and Fusion 360 are trademarks of their respective owners. This project is not affiliated with or endorsed by any of them.</p>
+  </div>
+</footer>
+
+<script>
+function copyUrl(){
+  var inp = document.getElementById('pcmurl');
+  inp.select(); inp.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(inp.value).then(function(){
+    var b = document.getElementById('copybtn');
+    var old = b.textContent; b.textContent = 'Copied ✓';
+    setTimeout(function(){ b.textContent = old; }, 1600);
+  });
+}
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Ícone 64×64 do plugin para o PCM (`kicad_plugin/icon.png`) e gerador `scripts/gen_pcm_icon.py`
 - Primeiro release do plugin no PCM (v3.0.0) publicado como asset do GitHub Release
 - Repositório PCM próprio (self-hosted) servido via GitHub Pages: `docs/pcm/packages.json` + `docs/pcm/repository.json`, gerados por `scripts/build_pcm_repo.py`
+- Landing page do projeto (`docs/index.html`) servida via GitHub Pages, com botão de instalação via PCM e quick start
 - Seção de "good first issues" no `CONTRIBUTING.md`
 
 ### Corrigido
