@@ -69,7 +69,7 @@ def main():
         'packages': [package],
     }
     packages_path = os.path.join(OUT_DIR, 'packages.json')
-    with open(packages_path, 'w', encoding='utf-8') as f:
+    with open(packages_path, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(packages_doc, f, indent=2, ensure_ascii=False)
         f.write('\n')
 
@@ -87,7 +87,7 @@ def main():
         },
     }
     repo_path = os.path.join(OUT_DIR, 'repository.json')
-    with open(repo_path, 'w', encoding='utf-8') as f:
+    with open(repo_path, 'w', encoding='utf-8', newline='\n') as f:
         json.dump(repo_doc, f, indent=2, ensure_ascii=False)
         f.write('\n')
 

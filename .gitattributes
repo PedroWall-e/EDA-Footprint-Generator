@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# PCM index files: force LF everywhere so the sha256 in repository.json
+# matches the bytes served by GitHub Pages (KiCad verifies this hash).
+docs/pcm/*.json text eol=lf
