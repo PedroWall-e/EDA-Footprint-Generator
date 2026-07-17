@@ -4,17 +4,80 @@
 > não deu conta. Este é o segundo. Cada afirmação aqui foi **testada**, não
 > suposta — os comandos estão junto.
 
-## Resultado: 71/71
+## Resultado: 71/71 — mas só na segunda tentativa
 
 ```
-pads: oficial=71  gerado=71
-=== VEREDITO: 71/71 pads identicos ao oficial | divergentes: 0 ===
+=== geometria: 71/71 pads identicos | divergentes: 0 ===
+  OFICIAL: 0 sobreposicoes (ok)
+  GERADO:  0 sobreposicoes (ok)
 ```
 
 Comparado com `referencia/NINA_LGA71R_1500X1000X223_PCB.kicad_mod` (footprint
 oficial da u-blox), reabrindo pelo Python do KiCad 10.0.3 — não pelo "ok" do CLI.
-Estrutura idêntica: 71 pads SMD, 0 de área nula, 30 pads `J×I` (1,15×0,70) + 41
-pads `O` (0,70×0,70), extensão 13,70 × 8,70 mm.
+Estrutura idêntica: 71 pads SMD, 0 de área nula, extensão 13,70 × 8,70 mm.
+
+> ⚠️ **A primeira versão passou no teste do README e estava fisicamente
+> quebrada.** Ler a seção seguinte antes de confiar no número acima.
+
+## O erro mais instrutivo da missão: o gabarito não é o oráculo — a geometria é
+
+A primeira versão deu **"71/71 idênticos"** pelo script do README. Estava errada:
+os pads laterais ficavam **em curto**.
+
+O script do README compara `(x, y, GetSizeX, GetSizeY)` e **ignora
+`GetOrientationDegrees()`**. O footprint oficial tem **32 pads girados 90°**; o
+meu, nenhum. Um pad 1,15×0,70 girado 90° tem *o mesmo* sizeX/sizeY de um não
+girado — e ocupa cobre **transposto**. O script não vê diferença; a placa vê.
+
+```
+OFICIAL  rotacoes: {90.0: 32, 0.0: 39}
+MEU (v1) rotacoes: {0.0: 71}
+```
+
+Consequência concreta: os pads 1..10 mediam 1,15 mm em X com pitch `H`=1,00 →
+**sobreposição de 0,15 mm entre pads vizinhos**.
+
+**A causa foi de leitura de cota, não de código.** A Table 22 diz:
+
+- `J` = "Lateral and antenna row pin **length**" = 1,15
+- `I` = "Lateral, antenna row and outer pin **width**" = 0,70
+
+São medidas **semânticas**, não presas a X/Y: o *comprimento* entra
+**perpendicular à borda** que o pad ocupa; a *largura* corre **ao longo** dela.
+Mapeei `J → largura` em todos os grupos. O correto:
+
+| Fileira | Corre em | (largura, altura) |
+|---|---|---|
+| Laterais (1–10, 16–25) | X | `(I, J)` = (0,70, 1,15) |
+| Antena (11–15) e coluna esq. (26–30) | Y | `(J, I)` = (1,15, 0,70) |
+
+Os outros 12 pads girados no oficial (56–67) são **quadrados** 0,70×0,70 — girar
+não muda nada. Só 20 pads importavam.
+
+### O que isso ensina sobre verificação
+
+Três verificadores disseram "ok" para um footprint com pads em curto:
+
+| Verificador | Veredito | Por quê falhou |
+|---|---|---|
+| `cli.py validar` (IPC + schema) | `ok: true` | não checa sobreposição |
+| Script de comparação do README | `71/71 idênticos` | ignora rotação |
+| `cli.py gerar` | `✅` | idem |
+
+Quem pegou foi a **checagem de colisão** — justamente o gap 4 deste documento.
+Escrevi o teste para saber se ligar a colisão quebraria presets; ele quebrou o
+**meu próprio footprint**. Sem ele, isto teria ido para a placa.
+
+`comparar.py` (nesta pasta) substitui o script do README: compara a **extensão
+real do cobre** (bounding box com rotação aplicada) e checa sobreposição nos dois
+footprints.
+
+```bash
+"C:\Program Files\KiCad\10.0\bin\python.exe" missoes/nina-b406/comparar.py
+```
+
+> **Sugestão para o README da missão**: o script de comparação que ele oferece
+> dá falso positivo. Vale trocá-lo por `comparar.py`.
 
 **Nenhuma coordenada foi copiada do gabarito.** As 71 posições foram derivadas
 só da Table 22 e *depois* conferidas contra o oficial (script:
@@ -182,19 +245,105 @@ precisamente onde um dedo trocado passa despercebido.
 **Proposta**: chamar `validate_pad_clearance` no `custom` (no mínimo), com a
 folga IPC como limite; sobreposição = erro, folga curta = aviso.
 
+### O que a colisão pegaria hoje: 2 presets da biblioteca estão quebrados
+
+Rodei a checagem de colisão nos 41 presets. Além do meu bug, ela achou **defeitos
+reais e pré-existentes**:
+
+```
+Conn_01x03          : 1 sobreposicao  -> pads 1 e 2 AMBOS em (0,0)
+Conn_01x06_PinHeader: 3 sobreposicoes -> pads 1&6, 2&5, 3&4 coincidentes
+```
+
+`header_3pin.yaml` declara `total: 3` e o footprint sai com **2 pads empilhados
+na origem**:
+
+```
+YAML pede total: 3  ->  gerou 2 pads
+    pad 1 em (0.0, 0.0)
+    pad 2 em (0.0, 0.0)
+```
+
+**Causa raiz** — `tipo: conector_pth` cai no shim para **`dual_pth`**, que é para
+componentes de **duas fileiras** (DIP):
+
+```python
+'conector_pth': 'dual_pth',                       # _TIPO_PARA_PADRAO
+meio        = total // 2                          # 3 // 2 = 1  -> perde 1 pino
+afastamento = _float(dados, 'corpo', 'afastamento_colunas')   # ausente -> 0.0
+x_esq, x_dir = -afastamento/2, +afastamento/2     # ambos 0 -> colunas colapsam
+```
+
+Um pin header 1×N é de **uma fileira**, não duas. Dois erros se somam: `total//2`
+descarta o pino ímpar e `afastamento_colunas` sem default junta as colunas em
+x=0. Os dois presets validam `ok: true`.
+
+> Fora do escopo do NINA-B406, mas achado por ele. `Conn_01x03` e
+> `Conn_01x06_PinHeader` produzem footprints inutilizáveis hoje — vale um issue
+> próprio. O `dual_pth` precisa de um caminho de fileira única (ou um padrão
+> `single_row`), e `afastamento_colunas` não deveria ter default silencioso 0.
+
+## 5. Rotação de pad — CONFIRMADO (gap novo, não previsto no README)
+
+O `custom` **não tem campo de rotação**:
+
+```
+$ sed -n '/^def _gerar_custom/,/save_footprint/p' core/gerador_footprint_v2.py | grep -i rota
+  (nada)
+```
+
+Para este LGA deu para contornar trocando `largura`/`altura` (num retângulo,
+girar 90° ≡ transpor w/h) — foi o que fiz. Mas:
+
+- o contorno é **outra conversão mental** que o humano faz e erra, exatamente
+  como a do gap 2;
+- para ângulos que não sejam múltiplos de 90° (conectores circulares, pads
+  radiais) **não há contorno**: é impossível expressar hoje.
+
+## 6. O schema não valida os campos de pad — CONFIRMADO (gap novo)
+
+```
+$ python -c "... schema['pads']['items']['properties']"
+  campos de pad no schema: []
+```
+
+`pads` é declarado como lista, mas **os itens não têm propriedades**. Ou seja:
+`largara: 1.15` (typo) passa na validação e o pad sai no default. Num YAML de 71
+pads escritos à mão, é uma armadilha certa.
+
 ---
 
 ## Prioridade sugerida
 
 | # | Gap | Impacto | Custo |
 |---|---|---|---|
-| 4 | Ligar a detecção de colisão | **alto** — hoje gera placa errada calado | baixo (o validador já existe) |
+| 4 | **Ligar a detecção de colisão** | **crítico** — pegaria meu bug e 2 presets quebrados | **baixo** (o validador já existe) |
+| — | Corrigir `conector_pth` de fileira única | **alto** — 2 presets inutilizáveis hoje | baixo |
+| 6 | Declarar os campos de pad no schema | alto — typo hoje passa calado | baixo |
 | 2 | `origem: pino_1` | alto — remove a conversão manual | baixo |
+| 5 | `rotacao` de pad | médio — contornável em 90°, impossível fora | baixo |
 | 1 | `grupos_pads` | alto — o YAML deixa de ser artefato de build | médio |
 | 3 | Keepout | ? | **bloqueado**: falta o UBX-19052230 |
 
-O gap 4 é o de melhor relação impacto/custo e resolve uma classe inteira, não só
-esta peça.
+O **gap 4 é disparado o melhor investimento**: o validador já existe, e ligá-lo
+teria pego (a) o meu footprint em curto e (b) dois presets quebrados na
+biblioteca. Não é hipótese — é o que ele achou nos 41 presets em uma rodada.
+
+## A lição que atravessa tudo
+
+Os quatro achados são o **mesmo padrão**: *o gerador aceita, produz, e não avisa
+que está errado.*
+
+| | |
+|---|---|
+| `.step` órfão (corrigido antes) | gerava sem referência 3D |
+| `overrides` em lista | ignorado em silêncio |
+| Meu footprint girado | 3 verificadores disseram "ok" |
+| `Conn_01x03` | 3 pinos → 2 pads empilhados, `ok: true` |
+
+Um gerador de footprint que erra **em silêncio** produz placa errada. O valor de
+"gerar sem erro" é zero se "sem erro" não quer dizer "certo". A lacuna do gerador
+não é de features — é de **desconfiança de si mesmo**.
 
 ## Reproduzir
 

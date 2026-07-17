@@ -34,23 +34,35 @@ ZL  = 0.70    # Antenna GND pin width and length
 # num modulo de largura B. Derivado, nao inventado.
 VS = B - 2 * E          # 8.25
 
+# ORIENTACAO DOS PADS RETANGULARES — nao e' detalhe cosmetico.
+# A Table 22 cota J como "pin LENGTH" e I como "pin WIDTH": sao medidas
+# SEMANTICAS, nao presas a X/Y. O comprimento J entra PERPENDICULAR a borda
+# que o pad ocupa; a largura I corre AO LONGO dela. Entao:
+#   - fileira que corre em X (laterais)  -> w = I, h = J
+#   - fileira que corre em Y (antena, coluna esquerda) -> w = J, h = I
+# Mapear J -> largura em todos os grupos faz os pads laterais medirem 1,15 em X
+# com pitch de 1,00: SOBREPOSICAO de 0,15 mm, ou seja, pads em curto.
+# (O footprint oficial expressa o mesmo com size=(J,I) + rotacao 90.)
+LAT_X = (I, J)   # (0.70, 1.15) — fileira ao longo de X
+LAT_Y = (J, I)   # (1.15, 0.70) — fileira ao longo de Y
+
 pads = {}   # n -> (dx, dy, w, h) relativo ao pino 1, dy positivo "para cima"
 
-# 1..10 — lateral inferior (pino 1 na origem), pitch H
+# 1..10 — lateral inferior (pino 1 na origem), pitch H — corre em X
 for k in range(10):
-    pads[1 + k] = (k * H, 0.0, J, I)
+    pads[1 + k] = (k * H, 0.0, *LAT_X)
 
-# 11..15 — fileira da antena: dx = R, subindo de F com pitch H
+# 11..15 — fileira da antena: dx = R, subindo de F com pitch H — corre em Y
 for k in range(5):
-    pads[11 + k] = (R, F + k * H, J, I)
+    pads[11 + k] = (R, F + k * H, *LAT_Y)
 
-# 16..25 — lateral superior: dy = VS, dx decrescente
+# 16..25 — lateral superior: dy = VS, dx decrescente — corre em X
 for k in range(10):
-    pads[16 + k] = ((9 - k) * H, VS, J, I)
+    pads[16 + k] = ((9 - k) * H, VS, *LAT_X)
 
-# 26..30 — coluna lateral esquerda: dx = Y, dy decrescente
+# 26..30 — coluna lateral esquerda: dx = Y, dy decrescente — corre em Y
 for k in range(5):
-    pads[26 + k] = (Y, F + (4 - k) * H, J, I)
+    pads[26 + k] = (Y, F + (4 - k) * H, *LAT_Y)
 
 # 31..36 — fileira interna inferior: dy = N, dx de M com pitch Q
 for k in range(6):
