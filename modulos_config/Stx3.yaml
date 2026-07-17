@@ -26,9 +26,15 @@ pinos:
   tamanho_pad:
     largura: 2.03        # extensao perpendicular à borda (mm) — para dentro do PCB
     altura:  1.27        # extensao paralela à borda (mm) — gap = 1.778-1.27 = 0.508mm
-  numeracao:
-    inicio_esquerdo: 1
-    inicio_direito: 17
+  # ATENCAO — bloco `numeracao` removido: descrevia um modulo de 2 LADOS
+  # (esquerdo 1-16, direito 17-32). Este e de 4 lados, e a contagem corre
+  # esquerdo -> base -> direito -> topo, entao a base ja ocupa 17-32:
+  # forcar inicio_direito: 17 duplicaria 16 pads (netlist errada).
+  # Ate agora o campo era ignorado pelo gerador, entao a numeracao efetiva
+  # sempre foi a sequencial 1..64 — removendo, nada muda na saida.
+  # >>> CONFERIR no datasheet se a numeracao real e mesmo sequencial 1..64.
+  #     Se cada lado comecar em outro numero, declare aqui:
+  #       numeracao: {inicio_esquerdo: 1, inicio_direito: 33}
 
 kicad:
   referencia: "U?"

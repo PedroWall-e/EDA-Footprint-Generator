@@ -16,6 +16,7 @@ import traceback
 import tempfile
 import shutil
 import copy
+import re
 
 # Forçar UTF-8 no stdout/stderr (evita UnicodeEncodeError com emojis ✅/❌ no
 # console do Windows, que por padrão usa cp1252). Ver AGENTS.md regra 6.
@@ -1441,6 +1442,90 @@ def test_grupo20():
         gerar_footprint_universal(d, path)
     teste("pinos.total contraditório → erro (não gera calado)",
           t_total_contradiz_lados)
+
+    def t_numeracao_inicio_por_lado():
+        """`pinos.numeracao` fixa onde a numeração de cada lado começa."""
+        dados = {
+            'nome': 'TESTE_Numeracao', 'padrao': 'quad_smd',
+            'pinos': {'lados': {'esquerdo': 4, 'base': 0, 'direito': 4, 'topo': 0},
+                      'pitch': 1.0,
+                      'tamanho_pad': {'largura': 0.5, 'altura': 0.3},
+                      'numeracao': {'inicio_esquerdo': 1, 'inicio_direito': 17}},
+            'corpo': {'largura': 8.0, 'comprimento': 8.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_numeracao.kicad_mod')
+        gerar_footprint_universal(dados, path)
+        content = open(path, 'r', encoding='utf-8').read()
+        nums = set(re.findall(r'\(pad "?(\d+)"?\s', content))
+        assert {'1', '2', '3', '4'} <= nums, f"esquerdo deveria ser 1..4: {sorted(nums)}"
+        assert {'17', '18', '19', '20'} <= nums, \
+            f"direito deveria começar em 17: {sorted(nums)}"
+    teste("pinos.numeracao define início por lado", t_numeracao_inicio_por_lado)
+
+    def t_numeracao_colisao_erro():
+        """Início que colide com outro lado → erro (pad duplicado = netlist errada).
+
+        Caso real: o Stx3 pedia inicio_direito=17 num módulo de 4 lados, onde a
+        base já ocupa 17-32.
+        """
+        dados = {
+            'nome': 'TESTE_Colisao', 'padrao': 'quad_smd',
+            'pinos': {'por_lado': 16, 'pitch': 1.0,
+                      'tamanho_pad': {'largura': 0.5, 'altura': 0.3},
+                      'numeracao': {'inicio_esquerdo': 1, 'inicio_direito': 17}},
+            'corpo': {'largura': 20.0, 'comprimento': 20.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_colisao.kicad_mod')
+        try:
+            gerar_footprint_universal(dados, path)
+            assert False, "numeração colidindo deveria dar erro"
+        except ValueError as e:
+            assert 'duplicad' in str(e).lower(), f"mensagem pouco clara: {e}"
+    teste("pinos.numeracao colidindo → erro (pad duplicado)",
+          t_numeracao_colisao_erro)
+
+    def t_solder_paste_margin():
+        """`solder_paste_margin` (topo do YAML) vira propriedade do footprint."""
+        dados = {
+            'nome': 'TESTE_SPM', 'padrao': 'dual_smd',
+            'solder_paste_margin': -0.05,
+            'pinos': {'total': 4, 'pitch': 1.27,
+                      'tamanho_pad': {'largura': 0.6, 'altura': 1.0},
+                      'afastamento_colunas': 4.0},
+            'corpo': {'largura': 3.0, 'comprimento': 3.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_spm.kicad_mod')
+        gerar_footprint_universal(dados, path)
+        content = open(path, 'r', encoding='utf-8').read()
+        assert 'solder_paste_margin' in content, \
+            "solder_paste_margin não foi escrito no .kicad_mod"
+    teste("solder_paste_margin aplicado ao footprint", t_solder_paste_margin)
+
+    def t_relatorio_polaridade_e_material():
+        """`eletrico.polaridade` e `*.material` aparecem no relatório.
+
+        O relatório iterava uma lista fixa que omitia polaridade — e nenhum
+        código lia os materiais.
+        """
+        from gerador_relatorio import _specs_to_html, _specs_materiais
+        html = _specs_to_html({'eletrico': {'polaridade': True}})
+        assert 'Polaridade' in html and 'Polarizado' in html, \
+            f"polaridade ausente do relatório: {html}"
+        # False é falsy — não pode sumir
+        html_f = _specs_to_html({'eletrico': {'polaridade': False}})
+        assert 'Nao polarizado' in html_f, f"polaridade=False sumiu: {html_f}"
+        mats = _specs_materiais({'pcb': {'material': 'FR4'},
+                                 'shield_metalico': {'material': 'Aluminum'}})
+        assert mats == [('Material do PCB', 'FR4'),
+                        ('Material do shield', 'Aluminum')], mats
+    teste("relatório mostra polaridade e materiais",
+          t_relatorio_polaridade_e_material)
 
 
 # =============================================================================

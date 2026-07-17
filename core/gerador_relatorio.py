@@ -231,6 +231,23 @@ def _gerar_pdf(componentes, pdf_path, opcoes):
     log.info('Relatório PDF gerado: %s (%d páginas)', pdf_path, len(componentes))
 
 
+def _specs_materiais(dados):
+    """Linhas de material do PCB e do shield, para a tabela de especificações.
+
+    `pcb.material` e `shield_metalico.material` descrevem o módulo físico. Não
+    afetam o footprint (são metadados), mas estavam no schema e nos YAMLs sem
+    aparecer em lugar nenhum — o relatório técnico é onde fazem sentido, junto
+    do bloco `eletrico`.
+    """
+    linhas = []
+    for secao, rotulo in (('pcb', 'Material do PCB'),
+                          ('shield_metalico', 'Material do shield')):
+        bloco = dados.get(secao)
+        if isinstance(bloco, dict) and bloco.get('material'):
+            linhas.append((rotulo, str(bloco['material'])))
+    return linhas
+
+
 def _draw_specs_table(ax, dados):
     """Draw technical specifications table."""
     ax.set_facecolor('#FAFAFA')
@@ -285,11 +302,16 @@ def _draw_specs_table(ax, dados):
     if margens.get('courtyard'):
         specs.append(('Courtyard', f'{margens["courtyard"]} mm'))
 
-    eletrico = dados.get('eletrico', {})
+    eletrico = dados.get('eletrico', {}) or {}
     for key in ('tolerancia', 'potencia', 'tensao_maxima', 'corrente_maxima'):
         if eletrico.get(key):
             label = key.replace('_', ' ').title()
             specs.append((label, str(eletrico[key])))
+    # polaridade e booleano: `if eletrico.get(key)` acima descartaria o False.
+    if eletrico.get('polaridade') is not None:
+        specs.append(('Polaridade',
+                      'Polarizado' if eletrico['polaridade'] else 'Nao polarizado'))
+    specs.extend(_specs_materiais(dados))
 
     if not specs:
         ax.text(0.5, 0.5, 'Sem dados', ha='center', va='center',
@@ -670,11 +692,15 @@ def _specs_to_html(dados):
     if margens.get('courtyard'):
         rows.append(('Courtyard', f'{margens["courtyard"]} mm'))
 
-    eletrico = dados.get('eletrico', {})
+    eletrico = dados.get('eletrico', {}) or {}
     for key in ('tolerancia', 'potencia', 'tensao_maxima', 'corrente_maxima'):
         if eletrico.get(key):
             label = key.replace('_', ' ').title()
             rows.append((label, str(eletrico[key])))
+    if eletrico.get('polaridade') is not None:
+        rows.append(('Polaridade',
+                     'Polarizado' if eletrico['polaridade'] else 'Nao polarizado'))
+    rows.extend(_specs_materiais(dados))
 
     html = '<table><tr><th>Par\u00e2metro</th><th>Valor</th></tr>'
     for param, val in rows:

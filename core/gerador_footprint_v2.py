@@ -266,7 +266,7 @@ def _gerar_axial_pth(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
+    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole', dados=dados)
 
     log.info("  [Footprint v2 axial_pth] %s  |  esp=%smm", nome, espacamento)
     log.info("  [Footprint v2 axial_pth] Arquivo: %s", caminho_saida)
@@ -364,7 +364,7 @@ def _gerar_radial_pth(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
+    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole', dados=dados)
 
     log.info("  [Footprint v2 radial_pth] %s  |  %d pinos  |  pitch=%smm", nome, total, pitch)
     log.info("  [Footprint v2 radial_pth] Arquivo: %s", caminho_saida)
@@ -477,7 +477,7 @@ def _gerar_dual_pth(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
+    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole', dados=dados)
 
     log.info("  [Footprint v2 dual_pth] %s  |  %d pinos  |  pitch=%smm", nome, total, pitch)
     log.info("  [Footprint v2 dual_pth] Arquivo: %s", caminho_saida)
@@ -665,7 +665,7 @@ def _gerar_dual_smd(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='smd')
+    save_footprint(footprint, caminho_saida, v6=True, attr='smd', dados=dados)
 
     log.info("  [Footprint v2 dual_smd] %s  |  %d pinos [%d+%d]  |  pitch=%smm",
              nome, total, n_esq, n_dir, pitch)
@@ -801,8 +801,18 @@ def _gerar_quad_smd(dados, caminho_saida):
         """Retorna (w, h) para o pad num, considerando overrides."""
         return override_map.get(str(num), (pad_w_def, pad_h_def))
 
+    # `pinos.numeracao` permite fixar onde a numeração de um lado começa, em
+    # vez de seguir a contagem corrida (esquerdo → base → direito → topo).
+    # Útil quando o datasheet numera assim. Sobreposições viram erro logo
+    # abaixo — pad duplicado seria netlist errada.
+    numeracao  = _get(dados, 'pinos', 'numeracao', default=None) or {}
+    inicio_esq = numeracao.get('inicio_esquerdo')
+    inicio_dir = numeracao.get('inicio_direito')
+
     # Esquerdo: cima → baixo (pads orientados horizontalmente)
     if n_esq > 0:
+        if inicio_esq is not None:
+            pad_num = int(inicio_esq)
         y_start = -(n_esq - 1) * pitch / 2
         for i in range(n_esq):
             w, h = _pad_size(pad_num)
@@ -824,6 +834,8 @@ def _gerar_quad_smd(dados, caminho_saida):
 
     # Direito: baixo → cima (pads orientados horizontalmente)
     if n_dir > 0:
+        if inicio_dir is not None:
+            pad_num = int(inicio_dir)
         y_start = -(n_dir - 1) * pitch / 2
         for i in range(n_dir):
             w, h = _pad_size(pad_num)
@@ -841,6 +853,21 @@ def _gerar_quad_smd(dados, caminho_saida):
             py = y_min
             pads_info.append((pad_num, px, py, h, w, True))
             pad_num += 1
+
+    # --- Validação: numeração não pode repetir ---
+    # `pinos.numeracao` fixa o início de um lado; se colidir com a contagem
+    # corrida dos outros, dois pads saem com o mesmo número — e pad duplicado
+    # é netlist errada, o tipo de defeito que só aparece na placa montada.
+    numeros = [p[0] for p in pads_info]
+    repetidos = sorted({n for n in numeros if numeros.count(n) > 1})
+    if repetidos:
+        raise ValueError(
+            f"'{nome}': pinos.numeracao gerou pads duplicados {repetidos}. "
+            f"A contagem corre esquerdo → base → direito → topo "
+            f"(esquerdo={n_esq}, base={n_base}, direito={n_dir}, topo={n_topo}); "
+            f"um inicio_* que caia sobre outro lado colide. Ajuste os inícios "
+            f"ou remova pinos.numeracao para usar a numeração sequencial."
+        )
 
     # --- Marcador pino 1 ---
     if pads_info:
@@ -867,7 +894,7 @@ def _gerar_quad_smd(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='smd')
+    save_footprint(footprint, caminho_saida, v6=True, attr='smd', dados=dados)
 
     log.info("  [Footprint v2 quad_smd] %s  |  %d pads", nome, total)
     log.info("  [Footprint v2 quad_smd] Arquivo: %s", caminho_saida)
@@ -1053,7 +1080,7 @@ def _gerar_custom(dados, caminho_saida):
         attr = 'through_hole'
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, attr=attr)
+    save_footprint(footprint, caminho_saida, attr=attr, dados=dados)
 
     log.info("  [Footprint v2 custom] %s  |  %d pads (%s)",
              nome, len(pads_list), attr)
@@ -1179,7 +1206,7 @@ def _gerar_bga(dados, caminho_saida):
     add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
-    save_footprint(footprint, caminho_saida, v6=True, attr='smd')
+    save_footprint(footprint, caminho_saida, v6=True, attr='smd', dados=dados)
 
     log.info("  [Footprint v2 bga] %s  |  %d balls (%dx%d, excl=%d)",
              nome, n_pads, linhas, colunas, len(excluir))

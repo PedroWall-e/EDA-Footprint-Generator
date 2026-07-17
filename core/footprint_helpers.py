@@ -608,12 +608,40 @@ def postprocess_v6(content, attr='through_hole'):
     return result
 
 
-def save_footprint(kicad_mod, caminho_saida, v6=True, attr='through_hole'):
+def apply_footprint_margins(kicad_mod, dados):
+    """Aplica as margens de topo do YAML ao footprint (propriedades do KiCad).
+
+    No KiCad, `solder_paste_margin` / `solder_mask_margin` são propriedades do
+    FOOTPRINT (o KicadFileHandler as escreve a partir de pasteMargin/
+    maskMargin) — e é exatamente onde o schema as declara: no topo, não por pad.
+
+    Ficam aqui, no ponto de saída comum aos 7 padrões, em vez de repetidas em
+    cada um — foi a repetição que deixou campos serem esquecidos.
+    """
+    if not isinstance(dados, dict):
+        return
+    for campo, setter in (('solder_paste_margin', kicad_mod.setPasteMargin),
+                          ('solder_mask_margin', kicad_mod.setMaskMargin)):
+        valor = dados.get(campo)
+        if valor is None:
+            continue
+        try:
+            setter(float(valor))
+        except (TypeError, ValueError):
+            log.warning("%s inválido (%r) — ignorado", campo, valor)
+
+
+def save_footprint(kicad_mod, caminho_saida, v6=True, attr='through_hole',
+                   dados=None):
     """Salva o footprint em arquivo .kicad_mod.
 
     Se v6=True, aplica postprocess_v6() para compatibilidade com KiCad 6+.
+    Se `dados` for passado, aplica as margens de topo (solder_paste_margin /
+    solder_mask_margin) antes de serializar.
     """
     import os
+
+    apply_footprint_margins(kicad_mod, dados)
 
     # Garantir que o diretório existe
     dir_saida = os.path.dirname(caminho_saida)
