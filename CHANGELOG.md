@@ -5,6 +5,10 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ## [Não lançado]
 
+### Corrigido
+- **Modelo 3D órfão quando `kicad.modelo_3d` era omitido.** O `cli.py` sempre gera `<nome>.step`, mas o motor universal (`gerador_footprint_v2.py`) só escrevia a referência `(model ...)` se o campo existisse no YAML — e o campo é opcional. Resultado: o `.step` ficava no disco sem ninguém apontar para ele e o KiCad não mostrava 3D nenhum. **Falha silenciosa**: sem erro, sem aviso. Afetava os **7 padrões** (`axial_pth`, `radial_pth`, `dual_pth`, `dual_smd`, `quad_smd`, `custom`, `bga`). Agora, omitir o campo faz referenciar `<nome>.step` automaticamente; `modelo_3d: ""` segue sendo a forma explícita de não referenciar 3D.
+- **`kicad.modelo_3d_path` era ignorado no motor universal.** O v2 chamava `add_3d_model(footprint, modelo_3d)` sem repassar `dados`, então o prefixo configurado no YAML nunca era lido.
+
 ### Alterado
 - **Renomeado o produto de "Data Frontier" para "EDA Footprint Generator"** em toda a interface, documentação e nome do plugin. Identificadores técnicos (`com.datafrontier.footprint-generator`, `DataFrontier.kicad_sym`, chaves de config) e autor/copyright foram mantidos para não quebrar compatibilidade.
 - Ícone do app/plugin passa a exibir "EDA" no lugar de "CAD"

@@ -280,14 +280,35 @@ def add_value_text(kicad_mod, nome, x, y, size=1.0, offset=1.5,
     ))
 
 
-def add_3d_model(kicad_mod, nome_modelo, path_prefix='${KIPRJMOD}/', dados=None):
+def add_3d_model(kicad_mod, nome_modelo, path_prefix='${KIPRJMOD}/', dados=None,
+                 nome_padrao=None):
     """Adiciona referência ao modelo 3D STEP.
 
-    Resolução de caminho (prioridade):
+    Resolução do NOME:
+      - nome_modelo=None (campo `kicad.modelo_3d` omitido no YAML) → usa
+        f"{nome_padrao}.step", que é exatamente o arquivo que o cli.py gera.
+        Sem isso o .step nasce ÓRFÃO: existe em disco, mas o footprint não o
+        referencia e o KiCad não mostra 3D nenhum — falha silenciosa.
+      - nome_modelo='' (vazio explícito) → não referencia nada. É a saída para
+        quem realmente não quer modelo 3D.
+
+    Resolução do CAMINHO (prioridade):
       1. Se nome_modelo já contém '/' ou '$' → caminho completo
       2. Se dados['kicad']['modelo_3d_path'] existe → usa como prefixo
       3. Caso contrário → usa path_prefix (default: '${KIPRJMOD}/')
+
+    Atenção ao default '${KIPRJMOD}/': aponta para a pasta do PROJETO, o que
+    não serve para biblioteca compartilhada (o .step não mora junto do
+    .kicad_pro). Nesse caso use uma variável do KiCad, ex.:
+    modelo_3d: "${MINHA_LIB_3DSHAPES}/Peca.step"
     """
+    if nome_modelo is None:
+        if not nome_padrao:
+            return
+        nome_modelo = f"{nome_padrao}.step"
+    if not nome_modelo:
+        return
+
     if '/' in nome_modelo or '$' in nome_modelo:
         filename = nome_modelo
     else:

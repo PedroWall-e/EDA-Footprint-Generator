@@ -176,7 +176,7 @@ def _gerar_axial_pth(dados, caminho_saida):
     margem_cy   = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk   = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab    = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao   = _get(dados, 'kicad', 'descricao', default='')
     tags        = _get(dados, 'kicad', 'tags', default='')
 
@@ -260,8 +260,7 @@ def _gerar_axial_pth(dados, caminho_saida):
                 shape=Pad.SHAPE_CIRCLE)
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
@@ -307,7 +306,7 @@ def _gerar_radial_pth(dados, caminho_saida):
     margem_cy  = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk  = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab   = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao  = _get(dados, 'kicad', 'descricao', default='')
     tags       = _get(dados, 'kicad', 'tags', default='')
 
@@ -357,8 +356,7 @@ def _gerar_radial_pth(dados, caminho_saida):
         add_pth_pad(footprint, num, xp, 0, pad_diam, furo_diam, shape=shp)
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
@@ -410,7 +408,7 @@ def _gerar_dual_pth(dados, caminho_saida):
     margem_cy   = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk   = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab    = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao   = _get(dados, 'kicad', 'descricao', default='')
     tags        = _get(dados, 'kicad', 'tags', default='')
 
@@ -468,8 +466,7 @@ def _gerar_dual_pth(dados, caminho_saida):
                     shape=Pad.SHAPE_CIRCLE)
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='through_hole')
@@ -525,7 +522,7 @@ def _gerar_dual_smd(dados, caminho_saida):
     margem_cy   = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk   = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab    = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d   = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao   = _get(dados, 'kicad', 'descricao', default='')
     tags        = _get(dados, 'kicad', 'tags', default='')
 
@@ -650,8 +647,7 @@ def _gerar_dual_smd(dados, caminho_saida):
     draw_courtyard_raw(footprint, cy_x0, cy_y0, cy_x1, cy_y1)
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='smd')
@@ -708,7 +704,7 @@ def _gerar_quad_smd(dados, caminho_saida):
     margem_cy = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab  = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao = _get(dados, 'kicad', 'descricao', default='')
     tags      = _get(dados, 'kicad', 'tags', default='')
 
@@ -842,8 +838,7 @@ def _gerar_quad_smd(dados, caminho_saida):
             add_thermal_pad(footprint, 0, 0, tw, th, paste_ratio)
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='smd')
@@ -905,7 +900,7 @@ def _gerar_custom(dados, caminho_saida):
     margem_cy  = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk  = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab   = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao  = _get(dados, 'kicad', 'descricao', default='')
     tags       = _get(dados, 'kicad', 'tags', default='')
 
@@ -1021,8 +1016,7 @@ def _gerar_custom(dados, caminho_saida):
                          style='dot', layer='F.SilkS')
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Determinar atributo ---
     if has_smd and has_pth:
@@ -1093,7 +1087,7 @@ def _gerar_bga(dados, caminho_saida):
     margem_cy  = _float(dados, 'margens', 'courtyard', default=0.5)
     larg_silk  = _float(dados, 'margens', 'silkscreen', default=0.12)
     larg_fab   = _float(dados, 'margens', 'fab_line', default=0.10)
-    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default='')
+    modelo_3d  = _get(dados, 'kicad', 'modelo_3d', default=None)
     descricao  = _get(dados, 'kicad', 'descricao', default='')
     tags       = _get(dados, 'kicad', 'tags', default='')
 
@@ -1154,8 +1148,7 @@ def _gerar_bga(dados, caminho_saida):
             n_pads += 1
 
     # --- Modelo 3D ---
-    if modelo_3d:
-        add_3d_model(footprint, modelo_3d)
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
 
     # --- Salvar ---
     save_footprint(footprint, caminho_saida, v6=True, attr='smd')

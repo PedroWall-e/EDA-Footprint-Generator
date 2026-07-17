@@ -93,7 +93,19 @@ kicad:
   valor: "NE555"                 # Texto mostrado no esquemático
   descricao: "Timer NE555 DIP-8" # Descrição para a biblioteca
   tags: "timer 555 dip pth"      # Tags para busca (separadas por espaço)
-  modelo_3d: "NE555_DIP8.step"   # Nome do arquivo 3D gerado
+  modelo_3d: "NE555_DIP8.step"   # OPCIONAL. Arquivo 3D que o footprint referencia.
+                                 #   omitido    -> usa "<nome>.step", que é
+                                 #                 exatamente o que o cli.py gera
+                                 #   ""         -> não referencia 3D nenhum
+                                 #   com / ou $ -> tratado como caminho completo
+                                 #
+                                 # BIBLIOTECA COMPARTILHADA: o prefixo padrão
+                                 # ${KIPRJMOD}/ aponta para a pasta do PROJETO e
+                                 # não serve — o .step não mora junto do
+                                 # .kicad_pro. Use uma variável do KiCad
+                                 # (Preferences -> Configure Paths):
+                                 #   modelo_3d: "${MINHA_LIB_3DSHAPES}/Peca.step"
+                                 # ou defina kicad.modelo_3d_path como prefixo.
   footprint_lib: "DataFrontier:NE555_DIP8"  # Referência da biblioteca (opcional)
 
 # ─── Seção margens (com padrões sensatos) ───────────────────────────────────

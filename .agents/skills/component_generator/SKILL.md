@@ -97,6 +97,20 @@ O componente é descrito como um dict/YAML com esta estrutura. Leia `schemas/com
 - `nome` — Nome único, sem espaços (ex: `NE555_DIP8`)
 - `padrao` ou `tipo` — Define o layout dos pads
 
+### `kicad.modelo_3d` — como o footprint acha o 3D
+
+| Valor | Efeito |
+|---|---|
+| **omitido** | referencia `"<nome>.step"` — que é o arquivo que o `cli.py` gera |
+| `""` (vazio) | não referencia 3D nenhum |
+| contém `/` ou `$` | tratado como **caminho completo** |
+| nome simples | recebe o prefixo `${KIPRJMOD}/` (ou `kicad.modelo_3d_path`) |
+
+> ⚠️ **Biblioteca compartilhada**: `${KIPRJMOD}` é a pasta do **projeto** KiCad.
+> Se o `.step` mora numa biblioteca (e não junto do `.kicad_pro`), o caminho não
+> resolve e o 3D não aparece. Use uma variável do KiCad (Preferences → Configure
+> Paths): `modelo_3d: "${MINHA_LIB_3DSHAPES}/Peca.step"`.
+
 ### Padrões disponíveis (`padrao`)
 
 | Padrão | Descrição | Exemplo |
@@ -140,7 +154,7 @@ kicad:
   valor: "100R"
   descricao: "Resistor axial PTH 100 Ohm"
   tags: "resistor pth axial"
-  modelo_3d: "Resistor_100R.step"
+  modelo_3d: "Resistor_100R.step"   # opcional — ver nota abaixo
 
 simbolo: resistor
 ```
