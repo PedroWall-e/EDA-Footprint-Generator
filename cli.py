@@ -370,8 +370,16 @@ def cmd_conferir(args):
     """Confere um .kicad_mod: colisão entre pads e, opcionalmente, gabarito."""
     from conferir_footprint import conferir
 
-    ok, rel = conferir(args.footprint, gabarito=args.gabarito,
-                       folga_min=args.folga_min)
+    try:
+        ok, rel = conferir(args.footprint, gabarito=args.gabarito,
+                           folga_min=args.folga_min)
+    except (FileNotFoundError, OSError) as e:
+        if args.json:
+            print(json.dumps({"ok": False, "erros": [str(e)]},
+                             ensure_ascii=False, indent=2))
+        else:
+            print(f"❌ {e}", file=sys.stderr)
+        return 1
 
     if args.json:
         print(json.dumps({"ok": ok, **rel}, ensure_ascii=False, indent=2))

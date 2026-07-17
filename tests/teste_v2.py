@@ -250,7 +250,9 @@ def test_grupo3():
         dados = {
             'nome': 'TESTE_SOIC8',
             'padrao': 'dual_smd',
-            'pinos': {'total': 8, 'pitch': 1.27, 'tamanho_pad': {'largura': 0.6, 'altura': 1.5}},
+            # largura = perpendicular a borda; altura = ao longo (tem de caber no pitch).
+            # Estava invertido: altura 1.5 com pitch 1.27 punha os pads em curto.
+            'pinos': {'total': 8, 'pitch': 1.27, 'tamanho_pad': {'largura': 1.5, 'altura': 0.6}},
             'corpo': {'largura': 3.9, 'comprimento': 4.9, 'afastamento_colunas': 5.4},
             'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
             'kicad': {'modelo_3d': 'SOIC8.step', 'descricao': 'SOIC-8', 'tags': 'soic smd'}
@@ -284,9 +286,12 @@ def test_grupo3():
         dados = {
             'nome': 'TESTE_QFP32',
             'padrao': 'quad_smd',
-            'pinos': {'pitch': 0.8, 'tamanho_pad': {'largura': 0.5, 'altura': 1.2},
+            # altura (ao longo da borda) tem de caber no pitch 0.8 — estava 1.2.
+            'pinos': {'pitch': 0.8, 'tamanho_pad': {'largura': 1.2, 'altura': 0.5},
                       'por_lado': 8},
-            'corpo': {'largura': 7.0, 'comprimento': 7.0},
+            # corpo 7.0 punha os pads de CANTO em curto (coluna x fileira):
+            # precisa > (n-1)*pitch + altura + largura = 7.30
+            'corpo': {'largura': 9.0, 'comprimento': 9.0},
             'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
             'kicad': {'modelo_3d': 'QFP32.step', 'descricao': 'QFP-32', 'tags': 'qfp smd'}
         }
@@ -649,10 +654,11 @@ def test_grupo12():
             'pinos': {
                 'total': 128,
                 'pitch': 0.5,
-                'tamanho_pad': {'largura': 0.3, 'altura': 1.0},
+                'tamanho_pad': {'largura': 1.0, 'altura': 0.3},   # altura < pitch 0.5
                 'por_lado': 32
             },
-            'corpo': {'largura': 14.0, 'comprimento': 14.0},
+            # corpo 14.0 punha os cantos em curto: precisa > 16.80
+            'corpo': {'largura': 20.0, 'comprimento': 20.0},
             'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
             'kicad': {'descricao': 'QFP-128 edge test', 'tags': 'qfp edge test'}
         }
@@ -1094,7 +1100,12 @@ def test_grupo18():
         'nome': 'TESTE_Conteudo_SOIC8',
         'padrao': 'dual_smd',
         'tipo': 'ci_soic',
-        'pinos': {'total': 8, 'pitch': 1.27, 'tamanho_pad': {'largura': 0.6, 'altura': 1.5}},
+        # largura/altura estavam TROCADOS: altura 1.5 com pitch 1.27 sobrepõe os
+        # pads vizinhos em 0.23mm — um SOIC-8 em curto. Num SOIC os pads correm
+        # em Y, então a ALTURA é que tem de caber no pitch. Confere com o preset
+        # real (NE555_SOIC8: largura 1.5, altura 0.6). A fixture passava porque
+        # nada checava colisão; a checagem nova a pegou.
+        'pinos': {'total': 8, 'pitch': 1.27, 'tamanho_pad': {'largura': 1.5, 'altura': 0.6}},
         'corpo': {'largura': 3.9, 'comprimento': 4.9, 'afastamento_colunas': 5.4},
         'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
         'kicad': {'modelo_3d': 'SOIC8.step', 'descricao': 'SOIC-8 Teste', 'tags': 'soic teste',
@@ -1345,13 +1356,19 @@ def test_grupo20():
                           'corpo': {'largura': 6.35, 'comprimento': 9.78,
                                     'afastamento_colunas': 7.62}}, '1'),
             'dual_smd': ({'padrao': 'dual_smd',
+                          # altura corre ao longo da borda -> tem de caber no pitch
                           'pinos': {'total': 8, 'pitch': 1.27,
-                                    'tamanho_pad': {'largura': 0.6, 'altura': 1.5},
+                                    'tamanho_pad': {'largura': 1.5, 'altura': 0.6},
                                     'afastamento_colunas': 5.4},
                           'corpo': {'largura': 3.9, 'comprimento': 4.9}}, '1'),
         }
-        OV_W, OV_H = 2.7, 1.9   # tamanho improvável de coincidir com o default
+        # O override tem de caber no pitch do padrao — senao poe os pads em
+        # curto e a checagem de colisao (corretamente) barra. Valor por caso.
+        # Sem .0 no fim: o KiCad escreve "2", nao "2.0", e a busca textual falha.
+        OV = {'axial_pth': (2.7, 1.9), 'radial_pth': (2.1, 1.9),
+              'dual_pth': (1.9, 2.1), 'dual_smd': (2.7, 1.1)}
         for padrao, (extra, pino) in casos.items():
+            OV_W, OV_H = OV[padrao]
             dados = {
                 'nome': f'TESTE_OV_{padrao}',
                 'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},

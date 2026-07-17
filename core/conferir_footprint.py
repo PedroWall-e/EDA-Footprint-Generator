@@ -26,6 +26,8 @@ def ler_pads(caminho):
     w/h já vêm com a rotação aplicada (a extensão real do cobre em X/Y), para
     que a comparação seja geométrica.
     """
+    if not os.path.isfile(caminho):
+        raise FileNotFoundError(f"footprint não encontrado: {caminho}")
     with open(caminho, 'r', encoding='utf-8') as f:
         sexpr = parse_sexpr(f.read())
 

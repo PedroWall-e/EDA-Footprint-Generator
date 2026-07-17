@@ -719,12 +719,14 @@ def _gerar_dual_smd(dados, caminho_saida):
     # --- Pads SMD: lado esquerdo (pinos 1..n_esq, top→bottom) ---
     all_pad_bounds = []  # para courtyard
 
+    pads_col = []   # (num, x, y, w, h) para a checagem de colisao
     for i in range(n_esq):
         num = i + 1
         py  = y_inicio_esq + i * pitch
         w, h = _pad_size(num)
         add_smd_pad(footprint, num, x_esq, py, w, h)
         all_pad_bounds.append((x_esq - w/2, py - h/2, x_esq + w/2, py + h/2))
+        pads_col.append((num, x_esq, py, w, h))
 
     # --- Pads SMD: lado direito ---
     if n_esq == n_dir:
@@ -735,6 +737,7 @@ def _gerar_dual_smd(dados, caminho_saida):
             w, h = _pad_size(num)
             add_smd_pad(footprint, num, x_dir, py, w, h)
             all_pad_bounds.append((x_dir - w/2, py - h/2, x_dir + w/2, py + h/2))
+            pads_col.append((num, x_dir, py, w, h))
     else:
         # Assimétrico: numeração sequencial (top→bottom) — DPAK, SOT-223
         for i in range(n_dir):
@@ -743,6 +746,12 @@ def _gerar_dual_smd(dados, caminho_saida):
             w, h = _pad_size(num)
             add_smd_pad(footprint, num, x_dir, py, w, h)
             all_pad_bounds.append((x_dir - w/2, py - h/2, x_dir + w/2, py + h/2))
+            pads_col.append((num, x_dir, py, w, h))
+
+    # --- Colisao entre pads ---
+    # A regra IPC compara pitch x `tamanho_pad` e so' vizinhos adjacentes: nao
+    # enxerga `overrides` nem `pinos_absolutos`. Aqui e' a geometria real.
+    check_pad_collisions(pads_col, nome)
 
     # --- Thermal pad (se definido explicitamente) ---
     thermal = _get(dados, 'pinos', 'thermal_pad', default=None)
@@ -974,6 +983,13 @@ def _gerar_quad_smd(dados, caminho_saida):
             f"um inicio_* que caia sobre outro lado colide. Ajuste os inícios "
             f"ou remova pinos.numeracao para usar a numeração sequencial."
         )
+
+    # --- Colisão entre pads ---
+    # A regra IPC de clearance compara pitch x `tamanho_pad` e olha só vizinhos
+    # adjacentes — não enxerga `overrides`. Um override maior que o pitch passava
+    # com ok: true e saía em curto. Aqui a checagem é sobre a geometria real de
+    # TODOS os pares (pads_info já traz w/h transpostos nos lados rotacionados).
+    check_pad_collisions([(p[0], p[1], p[2], p[3], p[4]) for p in pads_info], nome)
 
     # --- Marcador pino 1 ---
     if pads_info:
