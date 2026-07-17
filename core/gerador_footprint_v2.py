@@ -56,6 +56,7 @@ from footprint_helpers import (
     read_paste_ratio,
     build_override_map,
     validate_annular_ring,
+    check_pad_collisions,
     postprocess_v6,
     save_footprint,
 )
@@ -481,6 +482,111 @@ def _gerar_dual_pth(dados, caminho_saida):
 
     log.info("  [Footprint v2 dual_pth] %s  |  %d pinos  |  pitch=%smm", nome, total, pitch)
     log.info("  [Footprint v2 dual_pth] Arquivo: %s", caminho_saida)
+
+
+# =============================================================================
+# Padrão: single_row_pth
+# 1 fileira de pads PTH — pin header 1xN
+# =============================================================================
+
+def _gerar_single_row_pth(dados, caminho_saida):
+    """Gera footprint de FILEIRA ÚNICA PTH — pin header 1xN.
+
+    Existe porque `conector_pth` caía no `dual_pth`, que é de DUAS fileiras:
+    `total // 2` descartava o pino ímpar (1x3 saía com 2 pads) e o
+    `afastamento_colunas` ausente colapsava as duas colunas em x=0, empilhando
+    os pads. Um header 1xN não é um DIP com metade dos pinos.
+
+    Os pads ficam numa coluna em x=0, pino 1 no topo (Y do KiCad cresce para
+    baixo) — a convenção da biblioteca oficial do KiCad para PinHeader_1xN.
+
+    YAML esperado:
+        padrao: single_row_pth      (ou tipo: conector_pth via shim)
+        nome: "Conn_01x06_PinHeader"
+        pinos:
+            total: 6
+            pitch: 2.54
+            diametro_pad: 1.7
+            diametro_furo: 1.0
+        corpo:                      # opcional — derivado dos pads se ausente
+            largura: 2.54
+            comprimento: 15.24
+        margens:
+            courtyard: 0.5
+            silkscreen: 0.12
+            fab_line: 0.10
+    """
+    nome      = dados['nome']
+    total     = _int(dados, 'pinos', 'total')
+    pitch     = _float(dados, 'pinos', 'pitch')
+    pad_diam  = _float(dados, 'pinos', 'diametro_pad')
+    furo_diam = _float(dados, 'pinos', 'diametro_furo')
+    margem_cy = _float(dados, 'margens', 'courtyard', default=0.5)
+    larg_silk = _float(dados, 'margens', 'silkscreen', default=0.12)
+    larg_fab  = _float(dados, 'margens', 'fab_line', default=0.10)
+    modelo_3d = _get(dados, 'kicad', 'modelo_3d', default=None)
+    descricao = _get(dados, 'kicad', 'descricao', default='')
+    tags      = _get(dados, 'kicad', 'tags', default='')
+
+    if total < 1:
+        raise ValueError(f"'{nome}': padrão 'single_row_pth' requer pinos.total >= 1.")
+    if pitch <= 0:
+        raise ValueError(f"'{nome}': padrão 'single_row_pth' requer pinos.pitch > 0.")
+
+    # Corpo: os YAMLs de header não trazem `corpo` — derivar do pitch e da
+    # contagem, como faz a biblioteca do KiCad (uma tira de 1 pitch de largura).
+    corpo_larg = _float(dados, 'corpo', 'largura', default=0) or pitch
+    corpo_comp = _float(dados, 'corpo', 'comprimento', default=0) or (total * pitch)
+
+    y_inicio = -(total - 1) * pitch / 2
+    corpo_x0, corpo_x1 = -corpo_larg / 2, corpo_larg / 2
+    corpo_y0, corpo_y1 = -corpo_comp / 2, corpo_comp / 2
+
+    footprint = Footprint(nome)
+    footprint.setDescription(descricao)
+    footprint.setTags(tags)
+
+    # --- Textos ---
+    add_reference_text(footprint, nome, 0, corpo_y0, thickness=larg_silk)
+    add_value_text(footprint, nome, 0, corpo_y1, thickness=larg_fab)
+
+    # --- Corpo (silk + fab) ---
+    draw_silkscreen_rect(footprint, corpo_x0, corpo_y0, corpo_x1, corpo_y1, larg_silk)
+    draw_fab_rect(footprint, corpo_x0, corpo_y0, corpo_x1, corpo_y1, larg_fab)
+
+    # --- Marcador do pino 1 ---
+    draw_pin1_marker(footprint, corpo_x0 - 0.3, y_inicio, style='arrow',
+                     size=0.5, line_width=larg_silk)
+
+    # --- Pads: uma coluna em x=0, pino 1 quadrado ---
+    ov = build_override_map(dados, pad_diam, pad_diam)
+    pads_bbox = []
+    for i in range(total):
+        num = i + 1
+        py  = y_inicio + i * pitch
+        shp = Pad.SHAPE_RECT if num == 1 else Pad.SHAPE_CIRCLE
+        add_pth_pad(footprint, num, 0, py, pad_diam, furo_diam, shape=shp,
+                    size=ov.get(str(num)))
+        w, h = ov.get(str(num), (pad_diam, pad_diam))
+        pads_bbox.append((num, 0, py, w, h))
+
+    check_pad_collisions(pads_bbox, nome)
+
+    # --- Courtyard: envolve pads e corpo ---
+    cy_x0 = min(corpo_x0, -pad_diam / 2) - margem_cy
+    cy_x1 = max(corpo_x1,  pad_diam / 2) + margem_cy
+    cy_y0 = min(corpo_y0, y_inicio - pad_diam / 2) - margem_cy
+    cy_y1 = max(corpo_y1, y_inicio + (total - 1) * pitch + pad_diam / 2) + margem_cy
+    draw_courtyard_raw(footprint, cy_x0, cy_y0, cy_x1, cy_y1)
+
+    # --- Modelo 3D ---
+    add_3d_model(footprint, modelo_3d, dados=dados, nome_padrao=nome)
+
+    # --- Salvar ---
+    save_footprint(footprint, caminho_saida, v6=True, attr='through_hole', dados=dados)
+
+    log.info("  [Footprint v2 single_row_pth] %s  |  %d pinos  |  pitch=%smm",
+             nome, total, pitch)
 
 
 # =============================================================================
@@ -979,6 +1085,10 @@ def _gerar_custom(dados, caminho_saida):
     has_smd = False
     all_x = []
     all_y = []
+    # Bounding boxes para a checagem de colisao. O `custom` e o unico padrao em
+    # que as posicoes sao escritas a mao — nos parametricos elas sao calculadas.
+    # E' aqui, portanto, que da' para colidir, e ate agora nada checava.
+    pads_bbox = []
 
     for i, pad_def in enumerate(pads_list):
         num       = pad_def.get('numero', i + 1)
@@ -986,6 +1096,7 @@ def _gerar_custom(dados, caminho_saida):
         py        = float(pad_def.get('y', 0))
         pw        = float(pad_def.get('largura', 1.0))
         ph        = float(pad_def.get('altura', 1.0))
+        pads_bbox.append((num, px, py, pw, ph))
         fmt_str   = pad_def.get('formato', 'retangulo')
         montagem  = pad_def.get('montagem', 'smd')
         furo      = float(pad_def.get('furo', 0))
@@ -1031,6 +1142,9 @@ def _gerar_custom(dados, caminho_saida):
         # Rastrear extensão para courtyard
         all_x.extend([px - pw / 2, px + pw / 2])
         all_y.extend([py - ph / 2, py + ph / 2])
+
+    # --- Colisao entre pads ---
+    check_pad_collisions(pads_bbox, nome)
 
     # --- Corpo ---
     body_info = _draw_body(footprint, dados, larg_silk, larg_fab)
@@ -1223,6 +1337,7 @@ _PADROES = {
     'dual_pth':   _gerar_dual_pth,
     'dual_smd':   _gerar_dual_smd,
     'quad_smd':   _gerar_quad_smd,
+    'single_row_pth': _gerar_single_row_pth,
     'custom':     _gerar_custom,
     'bga':        _gerar_bga,
 }
@@ -1237,7 +1352,7 @@ _TIPO_PARA_PADRAO = {
     'transistor_to92': 'radial_pth',
     'ci_dip':          'dual_pth',
     'ci_soic':         'dual_smd',
-    'conector_pth':    'dual_pth',
+    'conector_pth':    'single_row_pth',
     'castellated':     'quad_smd',
 }
 

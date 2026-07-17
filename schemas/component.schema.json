@@ -884,7 +884,8 @@
         "largura",
         "altura"
       ],
-      "description": "Definição de um pad individual para padrao: custom."
+      "description": "Um pad posicionado explicitamente (padrao custom). additionalProperties:false faz um typo em campo opcional (ex.: 'formto' por 'formato') virar ERRO em vez de cair no default em silencio.",
+      "additionalProperties": false
     },
     "kicad": {
       "type": "object",

@@ -120,6 +120,7 @@ O componente é descrito como um dict/YAML com esta estrutura. Leia `schemas/com
 | `dual_pth` | 2 fileiras PTH (DIP) | DIP14 |
 | `dual_smd` | 2 fileiras SMD (SOIC, SOT-23) | SMD_0805, SOT23_3 |
 | `quad_smd` | 4 lados SMD (QFP, QFN) | QFN16_4x4, TQFP44 |
+| `single_row_pth` | 1 fileira PTH (pin header 1xN) | Conn_01x06 |
 | `custom` | Posições arbitrárias | Battery_CR2032 |
 | `bga` | Ball Grid Array | BGA256_17x17 |
 

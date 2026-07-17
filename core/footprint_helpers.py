@@ -536,26 +536,73 @@ def validate_annular_ring(pad_diam, drill_diam, min_ring=0.15):
 
 
 def validate_pad_clearance(pads_positions, min_clearance=0.2):
-    """Valida espaçamento mínimo entre pads.
+    """Valida espaçamento mínimo entre pads (compatibilidade).
 
     pads_positions: lista de (x, y, largura, altura)
     Retorna True se todos os pares satisfazem o espaçamento mínimo.
+
+    Prefira `check_pad_collisions`, que distingue sobreposição (erro) de folga
+    curta (aviso) e identifica os pads pelo número.
     """
-    ok = True
-    for i in range(len(pads_positions)):
-        for j in range(i + 1, len(pads_positions)):
-            xi, yi, wi, hi = pads_positions[i]
-            xj, yj, wj, hj = pads_positions[j]
+    pads = [(i + 1, *p) for i, p in enumerate(pads_positions)]
+    sobrepostos, curtos = pad_clearance_report(pads, min_clearance)
+    for a, b, gap in sobrepostos + curtos:
+        log.warning('Pad clearance %.2fmm < minimo %.2fmm entre pads %s e %s',
+                    gap, min_clearance, a, b)
+    return not (sobrepostos or curtos)
+
+
+def pad_clearance_report(pads, min_clearance=0.2):
+    """Mede a folga entre todos os pares de pads.
+
+    pads: lista de (numero, x, y, largura, altura)
+    Retorna (sobrepostos, curtos), cada um lista de (num_a, num_b, folga_mm):
+      - sobrepostos: folga < 0  -> o cobre se toca. Curto: erro.
+      - curtos:      0 <= folga < min_clearance -> fabricável no limite: aviso.
+
+    Dois retângulos estão separados se QUALQUER eixo os separar, por isso a
+    folga é o max(dx, dy). Pads com o MESMO número são o mesmo net (ex.: um
+    pino com dois pads) e são ignorados — tocar ali é intencional.
+    """
+    sobrepostos, curtos = [], []
+    for i in range(len(pads)):
+        for j in range(i + 1, len(pads)):
+            na, xi, yi, wi, hi = pads[i]
+            nb, xj, yj, wj, hj = pads[j]
+            if str(na) == str(nb):
+                continue
             dx = abs(xi - xj) - (wi + wj) / 2
             dy = abs(yi - yj) - (hi + hj) / 2
             gap = max(dx, dy)
-            if gap < min_clearance:
-                log.warning(
-                    f'Pad clearance {gap:.2f}mm < minimum {min_clearance}mm '
-                    f'between positions ({xi},{yi}) and ({xj},{yj})'
-                )
-                ok = False
-    return ok
+            if gap < 0:
+                sobrepostos.append((na, nb, round(gap, 4)))
+            elif gap < min_clearance:
+                curtos.append((na, nb, round(gap, 4)))
+    return sobrepostos, curtos
+
+
+def check_pad_collisions(pads, nome, min_clearance=0.2):
+    """Aborta se houver pads sobrepostos; avisa se a folga for curta.
+
+    Chamado pelos padrões que posicionam pads. Sobreposição vira ValueError
+    porque o footprint sairia com pads em curto — e "gerou sem erro" nao pode
+    significar "está certo". Folga curta é só aviso: pode ser deliberado.
+    """
+    sobrepostos, curtos = pad_clearance_report(pads, min_clearance)
+
+    for a, b, gap in curtos:
+        log.warning("%s: folga de %.3fmm entre os pads %s e %s (< %.2fmm)",
+                    nome, gap, a, b, min_clearance)
+
+    if sobrepostos:
+        det = ', '.join(f'{a}+{b} ({-gap:.3f}mm)' for a, b, gap in sobrepostos[:6])
+        mais = f' e mais {len(sobrepostos) - 6}' if len(sobrepostos) > 6 else ''
+        raise ValueError(
+            f"'{nome}': {len(sobrepostos)} par(es) de pads se sobrepoem — "
+            f"o cobre se toca e os pinos sairiam em curto: {det}{mais}. "
+            f"Corrija as posicoes/tamanhos no YAML."
+        )
+    return True
 
 
 # =============================================================================

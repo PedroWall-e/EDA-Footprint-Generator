@@ -300,16 +300,34 @@ girar 90° ≡ transpor w/h) — foi o que fiz. Mas:
 - para ângulos que não sejam múltiplos de 90° (conectores circulares, pads
   radiais) **não há contorno**: é impossível expressar hoje.
 
-## 6. O schema não valida os campos de pad — CONFIRMADO (gap novo)
+## 6. Typo em campo opcional de pad — CONFIRMADO (menor do que eu afirmei)
 
+> **Correção**: minha primeira versão deste achado dizia que *"o schema não
+> valida os campos de pad"*. **Estava errado.** Eu li
+> `pads.items.properties` e vi `[]` — mas `items` é um **`$ref` para
+> `$defs/custom_pad`**, e minha checagem não seguiu a referência. O
+> `custom_pad` define os 11 campos e exige `x`, `y`, `largura`, `altura`.
+> Um typo em campo **obrigatório** já era pego:
+> `largara: 1.15` → *"'largura' is a required property"* ✓
+
+O gap real é bem menor: `custom_pad` não declarava `additionalProperties`, então
+um typo em campo **opcional** passava calado. Testado:
+
+```yaml
+- {numero: 1, x: 0, y: 0, largura: 1.15, altura: 0.7,
+   formto: circulo, montgem: pth, buraco: 0.8}     # 3 typos
 ```
-$ python -c "... schema['pads']['items']['properties']"
-  campos de pad no schema: []
+```
+validar -> ok: true
+pad 1   -> shape=rect  attr=SMD  drill=0.0
+        (o autor pediu circulo PTH com furo 0,8)
 ```
 
-`pads` é declarado como lista, mas **os itens não têm propriedades**. Ou seja:
-`largara: 1.15` (typo) passa na validação e o pad sai no default. Num YAML de 71
-pads escritos à mão, é uma armadilha certa.
+Validava, gerava, e entregava um pad **retangular SMD sem furo** — sem um aviso.
+
+**Corrigido**: `custom_pad.additionalProperties: false`. Agora:
+`"Additional properties are not allowed ('buraco', 'formto', 'montgem' were unexpected)"`.
+Os 41 presets seguem validando.
 
 ---
 

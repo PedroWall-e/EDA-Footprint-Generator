@@ -80,8 +80,9 @@ def test_grupo1():
         padroes = listar_padroes()
         assert 'axial_pth' in padroes, f"axial_pth não encontrado em {padroes}"
         assert 'custom' in padroes, f"custom não encontrado em {padroes}"
-        assert len(padroes) == 7, f"Esperado 7 padrões, encontrado {len(padroes)}"
-    teste("Import gerador_footprint_v2 (7 padrões)", t_import_v2)
+        assert 'single_row_pth' in padroes, f"single_row_pth ausente em {padroes}"
+        assert len(padroes) == 8, f"Esperado 8 padrões, encontrado {len(padroes)}"
+    teste("Import gerador_footprint_v2 (8 padrões)", t_import_v2)
 
     def t_import_validador():
         from validador_ipc import validar_yaml, IPCValidationResult
@@ -1527,6 +1528,102 @@ def test_grupo20():
     teste("relatório mostra polaridade e materiais",
           t_relatorio_polaridade_e_material)
 
+    def t_colisao_pads_erro():
+        """Pads sobrepostos = pinos em curto → ERRO, não geração silenciosa.
+
+        `validate_pad_clearance` existia mas ninguém a chamava: dois pads de
+        1x1mm com centros a 0,1mm geravam `ok: true`.
+        """
+        base = {
+            'nome': 'TESTE_Colisao', 'padrao': 'custom',
+            'corpo': {'largura': 5.0, 'comprimento': 5.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_colisao_pads.kicad_mod')
+
+        # sobrepostos → erro
+        d = copy.deepcopy(base)
+        d['pads'] = [
+            {'numero': 1, 'x': 0.0, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+            {'numero': 2, 'x': 0.1, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+        ]
+        try:
+            gerar_footprint_universal(d, path)
+            assert False, "pads sobrepostos deveriam dar erro"
+        except ValueError as e:
+            assert 'sobrep' in str(e).lower(), f"mensagem pouco clara: {e}"
+
+        # separados → gera normal
+        d = copy.deepcopy(base)
+        d['pads'] = [
+            {'numero': 1, 'x': 0.0, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+            {'numero': 2, 'x': 2.0, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+        ]
+        gerar_footprint_universal(d, path)
+
+        # mesmo numero = mesmo net: tocar ali e' intencional, nao e' curto
+        d = copy.deepcopy(base)
+        d['pads'] = [
+            {'numero': 1, 'x': 0.0, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+            {'numero': 1, 'x': 0.1, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+        ]
+        gerar_footprint_universal(d, path)
+    teste("pads sobrepostos → erro (custom)", t_colisao_pads_erro)
+
+    def t_single_row_pth():
+        """Header 1xN é fileira ÚNICA — antes caía no dual_pth (2 fileiras).
+
+        Regressão: Conn_01x03 (total: 3) saía com 2 pads EMPILHADOS em (0,0),
+        porque total//2 descartava o pino ímpar e afastamento_colunas ausente
+        colapsava as colunas.
+        """
+        from gerador_footprint_v2 import _TIPO_PARA_PADRAO
+        assert _TIPO_PARA_PADRAO['conector_pth'] == 'single_row_pth', \
+            "conector_pth deve mapear para single_row_pth, não dual_pth"
+
+        for total in (3, 6):
+            dados = {
+                'nome': f'TESTE_Header_1x{total}', 'tipo': 'conector_pth',
+                'pinos': {'total': total, 'pitch': 2.54,
+                          'diametro_pad': 1.7, 'diametro_furo': 1.0},
+                'margens': {'courtyard': 0.5, 'silkscreen': 0.12, 'fab_line': 0.10},
+                'kicad': {'referencia': 'J?', 'descricao': 'x', 'tags': 'x'},
+            }
+            path = os.path.join(saida_dir, f'TESTE_header_1x{total}.kicad_mod')
+            gerar_footprint_universal(dados, path)
+            content = open(path, 'r', encoding='utf-8').read()
+            nums = re.findall(r'\(pad "?(\d+)"?\s', content)
+            assert len(nums) == total, \
+                f"1x{total} deveria ter {total} pads, tem {len(nums)}"
+            assert sorted(map(int, nums)) == list(range(1, total + 1)), \
+                f"numeração errada em 1x{total}: {sorted(nums)}"
+            # nenhum pad coincidente (o bug era empilhar em (0,0))
+            pos = re.findall(r'\(pad "?\d+"? \w+ \w+ \(at ([-\d.]+ [-\d.]+)\)', content)
+            assert len(set(pos)) == len(pos), \
+                f"1x{total} tem pads coincidentes: {pos}"
+    teste("header 1xN gera fileira única (regressão)", t_single_row_pth)
+
+    def t_schema_typo_pad():
+        """Typo em campo opcional de pad → erro, não default silencioso.
+
+        `formto: circulo` entregava um pad retangular SMD com ok: true.
+        """
+        from validador_schema import validar_schema
+        bom = {'nome': 'T', 'padrao': 'custom',
+               'pads': [{'numero': 1, 'x': 0, 'y': 0,
+                         'largura': 1.0, 'altura': 1.0, 'formato': 'circulo'}]}
+        ok, _ = validar_schema(bom)
+        assert ok, "YAML válido não deveria falhar"
+
+        ruim = copy.deepcopy(bom)
+        ruim['pads'][0].pop('formato')
+        ruim['pads'][0]['formto'] = 'circulo'      # typo
+        ok, erros = validar_schema(ruim)
+        assert not ok, "typo em campo opcional deveria falhar no schema"
+        assert any('formto' in str(e) for e in erros), f"erro não cita o typo: {erros}"
+    teste("typo em campo de pad → erro no schema", t_schema_typo_pad)
+
 
 # =============================================================================
 # EXECUÇÃO
@@ -1539,7 +1636,7 @@ if __name__ == '__main__':
 
     test_grupo1()   # Imports
     test_grupo2()   # Validador IPC
-    test_grupo3()   # Motor Universal (7 padrões)
+    test_grupo3()   # Motor Universal (8 padrões)
     test_grupo4()   # Shim tipo→padrao
     test_grupo5()   # Gerador de Símbolos
     test_grupo6()   # Formato v6+

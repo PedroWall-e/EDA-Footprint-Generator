@@ -349,7 +349,23 @@ pin_types:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SEÇÃO 4: MOTOR UNIVERSAL (padrao:) — 6 Padrões Paramétricos
+# SEÇÃO 4: MOTOR UNIVERSAL (padrao:) — Padrões Paramétricos
+#
+# padrao: single_row_pth — PIN HEADER 1xN (fileira UNICA PTH)
+# ---------------------------------------------------------------------------
+# Pads numa coluna em x=0, pino 1 no topo (convencao do KiCad p/ PinHeader_1xN).
+# `tipo: conector_pth` cai aqui pelo shim.
+#   pinos:
+#     total: 6
+#     pitch: 2.54
+#     diametro_pad: 1.7
+#     diametro_furo: 1.0
+#   corpo:                 # OPCIONAL — derivado dos pads se ausente
+#     largura: 2.54        #   default: pitch
+#     comprimento: 15.24   #   default: total * pitch
+# NAO confundir com dual_pth (2 fileiras, DIP/box header): um header 1xN no
+# dual_pth perdia o pino impar (total//2) e empilhava os pads em x=0.
+# ---------------------------------------------------------------------------
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # Use "padrao:" quando precisar de mais flexibilidade ou quando o componente
