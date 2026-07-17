@@ -1,13 +1,60 @@
+# =============================================================================
+# ⚠️  NAO USE ESTE FOOTPRINT EM PLACA — a geometria NAO confere com o datasheet.
+# =============================================================================
+# Conferido contra o STX3 User Manual 8545-0198-01 R-4 (datasheets/STX3.pdf).
+# O que este arquivo diz NAO bate com o que o datasheet especifica:
+#
+#   campo          | aqui   | datasheet (Fig.7, em polegadas)
+#   ---------------|--------|--------------------------------
+#   pitch          | 1.778  | 2.540  (.100")
+#   tamanho_pad    | 2.03 x 1.27 | 1.93 x 2.03  (.076" x .080")
+#   por_lado       | 16     | NAO e' 16 por lado: 9 / 7 / 9 / 7  (Fig.8)
+#
+# O comentario original do pitch entregava a origem do numero:
+#   "1.778 — unico pitch padrao que cabe 16 pinos em 28.70mm"
+# ou seja, foi ESCOLHIDO para caber numa suposicao errada (16 por lado), nao
+# lido do datasheet. Viola a regra "nao invente cota".
+#
+# ALEM DISSO: `tipo: castellated` -> quad_smd, que assume UM pitch por peca.
+# A fileira INFERIOR do STX3 tem pitch NAO-UNIFORME:
+#     .055 | .100 | .100 | .100 | .120 | .120 | .100 | .055
+# Os .120 cercam o pino 14 = RFOUT (folga extra para o RF, Fig.8). O quad_smd
+# nao expressa isso: a peca exige `padrao: custom`.
+#
+# O QUE ESTA ESTABELECIDO (datasheet, confiavel):
+#   - Modulo: 0.810 x 1.130 x 0.162 pol = 20.574 x 28.702 x 4.115 mm (Fig.1, em
+#     TEXTO). Confirma o pcb.largura/altura abaixo.
+#   - 32 pinos em 4 lados (Table 3 vai de 1 a 32; Fig.8 mostra o arranjo):
+#       esquerdo 1-9 | base 10-16 | direito 17-25 | topo 26-32
+#   - Pitch .100" nos lados esquerdo/direito/topo; inferior nao-uniforme (acima).
+#   - Pad .076" x .080", com o lado MAIOR (.080) perpendicular a borda.
+#
+# O QUE FALTA (por isso nao da' para reescrever como custom ainda):
+#   Os offsets .075 / .117 / .153 / .055 da Fig.7 sao medidos a partir de linhas
+#   de referencia cujo datum NAO consegui determinar: a figura e' RASTER e a
+#   propria missao avisa que o desenho esta fora de escala. Tentei deduzir por
+#   fechamento aritmetico (chegava a um land pattern de .826 x 1.146", = modulo
+#   + .008"/lado) mas a verificacao em pixels REFUTOU: ha uma unica linha de
+#   referencia vertical na figura, nao duas. Sem o datum, a grade de pads nao
+#   tem onde se ancorar — e estimar seria inventar cota.
+#
+#   PARA DESTRAVAR: o proprio datasheet aponta o caminho (Table 1, Ref [A]):
+#     "STX3 Reference Design Package, including Gerbers and other files.
+#      Available upon request from Globalstar"
+#   Com os Gerbers, a grade sai exata e da' para reescrever como custom — do
+#   mesmo jeito que o NINA-B406 (ver missoes/nina-b406/).
+# =============================================================================
+
 nome: "Globalstar_STX3"
 fabricante: "Globalstar"
 mpn: "~"  # Confidencial
-datasheet_url: "~"  # Confidencial
+datasheet_url: "~"  # STX3 User Manual 8545-0198-01 R-4
 tipo: "castellated"
 
 pcb:
-  largura: 20.57
-  altura: 28.70
-  espessura: 1.50
+  largura: 20.57    # datasheet Fig.1: 0.810 pol = 20.574 mm  ✓ confere
+  altura: 28.70     # datasheet Fig.1: 1.130 pol = 28.702 mm  ✓ confere
+  espessura: 1.50   # NAO confere: Fig.1 da' 0.162 pol = 4.115 mm (com a capa)
   material: "FR4"
 
 shield_metalico:
@@ -18,14 +65,26 @@ shield_metalico:
   material: "Aluminum"
 
 pinos:
-  total: 64             # 16 por lado x 4 lados (antes dizia 32: o gerador
-                        # ignorava e produzia 64 pads sem avisar)
-  por_lado: 16
-  pitch: 1.778          # 70 mil — único pitch padrao que cabe 16 pinos em 28.70mm
-                         # span = 15 × 1.778 = 26.67mm < 28.70mm (margem ~1mm/lado)
+  # total: 32 e o arranjo 9/7/9/7 sao do datasheet (Table 3 + Fig.8) — solidos.
+  # Eu havia trocado para total: 64 por leitura errada; revertido.
+  total: 32
+  lados:
+    esquerdo: 9         # pinos 1-9    (CTS, RTS, NC x4, VRF, GND, GND)
+    base: 7             # pinos 10-16  (GND x4, RFOUT, GND, GND)
+    direito: 9          # pinos 17-25  (GND x4, NC x3, PWR_EN, NC)
+    topo: 7             # pinos 26-32  (TxD, RxD, TEST2, TEST1, NC, RESET, VDIG)
+  # A contagem corrida (esquerdo -> base -> direito -> topo) ja produz
+  # esquerdo=1-9, base=10-16, direito=17-25, topo=26-32 — exatamente a Fig.8.
+  # Por isso `numeracao: {inicio_esquerdo: 1, inicio_direito: 17}` do arquivo
+  # original estava CORRETO (e eu errei ao remove-lo): com 9 a esquerda, o
+  # direito comeca mesmo em 17. Fica implicito, sem precisar declarar.
+  pitch: 2.54            # datasheet Fig.7: .100 pol. (Era 1.778 — inventado.)
+                         # ATENCAO: a fileira INFERIOR nao usa este pitch (ver
+                         # cabecalho). O quad_smd aplica um so' — por isso a
+                         # base sai ERRADA. Bloqueio conhecido.
   tamanho_pad:
-    largura: 2.03        # extensao perpendicular à borda (mm) — para dentro do PCB
-    altura:  1.27        # extensao paralela à borda (mm) — gap = 1.778-1.27 = 0.508mm
+    largura: 2.03        # .080 pol — perpendicular a borda
+    altura:  1.93        # .076 pol — ao longo da borda  (era 1.27: inventado)
   # ATENCAO — bloco `numeracao` removido: descrevia um modulo de 2 LADOS
   # (esquerdo 1-16, direito 17-32). Este e de 4 lados, e a contagem corre
   # esquerdo -> base -> direito -> topo, entao a base ja ocupa 17-32:
