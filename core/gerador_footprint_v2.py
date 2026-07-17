@@ -53,6 +53,7 @@ from footprint_helpers import (
     add_pth_pad,
     add_smd_pad,
     add_thermal_pad,
+    read_paste_ratio,
     build_override_map,
     validate_annular_ring,
     postprocess_v6,
@@ -642,7 +643,7 @@ def _gerar_dual_smd(dados, caminho_saida):
     if thermal:
         tw = float(thermal.get('largura', 0))
         th = float(thermal.get('altura', 0))
-        paste_ratio = float(thermal.get('paste_ratio', 0.5))
+        paste_ratio = read_paste_ratio(thermal)
         if tw > 0 and th > 0:
             add_thermal_pad(footprint, 0, 0, tw, th, paste_ratio)
             all_pad_bounds.append((-tw/2, -th/2, tw/2, th/2))
@@ -750,6 +751,21 @@ def _gerar_quad_smd(dados, caminho_saida):
 
     total = n_esq + n_base + n_dir + n_topo
 
+    # --- Validação: `total` declarado tem que bater com a distribuição ---
+    # Quando `lados`/`por_lado` estavam presentes, um `pinos.total` divergente
+    # era descartado em silêncio: o Stx3 declarava total: 32 com por_lado: 16 e
+    # saía com 64 pads, sem erro nenhum. E na divisão automática o resto sumia
+    # calado (total: 30 → 30//4 = 7 por lado → 28 pads, faltando 2).
+    # Contradição agora é erro: melhor não gerar do que gerar errado.
+    total_declarado = _int(dados, 'pinos', 'total', default=0)
+    if total_declarado and total_declarado != total:
+        raise ValueError(
+            f"'{nome}': pinos.total={total_declarado} contradiz a distribuição "
+            f"por lado (esquerdo={n_esq}, base={n_base}, direito={n_dir}, "
+            f"topo={n_topo} → {total} pads). Ajuste o total ou declare os lados "
+            f"explicitamente com pinos.lados (use 0 nos lados sem pinos)."
+        )
+
     # Bordas do corpo
     x_min = -(pcb_largura / 2)
     x_max =  (pcb_largura / 2)
@@ -843,7 +859,7 @@ def _gerar_quad_smd(dados, caminho_saida):
     if thermal:
         tw = float(thermal.get('largura', 0))
         th = float(thermal.get('altura', 0))
-        paste_ratio = float(thermal.get('paste_ratio', 0.5))
+        paste_ratio = read_paste_ratio(thermal)
         if tw > 0 and th > 0:
             add_thermal_pad(footprint, 0, 0, tw, th, paste_ratio)
 

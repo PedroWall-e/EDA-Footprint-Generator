@@ -18,7 +18,8 @@ shield_metalico:
   material: "Aluminum"
 
 pinos:
-  total: 32
+  total: 64             # 16 por lado x 4 lados (antes dizia 32: o gerador
+                        # ignorava e produzia 64 pads sem avisar)
   por_lado: 16
   pitch: 1.778          # 70 mil — único pitch padrao que cabe 16 pinos em 28.70mm
                          # span = 15 × 1.778 = 26.67mm < 28.70mm (margem ~1mm/lado)

@@ -398,6 +398,27 @@ def build_override_map(dados, pad_w_def, pad_h_def):
     return override_map
 
 
+def read_paste_ratio(thermal, default=0.5):
+    """Lê o ratio de pasta do bloco `thermal_pad`, aceitando as duas grafias.
+
+    O schema declara `pasta_ratio` como **sinônimo** de `paste_ratio`, e o
+    `_template.yaml` ensina justamente a grafia `pasta_ratio`. Ler só uma
+    fazia a outra ser descartada em silêncio: o YAML era aceito, o footprint
+    gerava, e a abertura de pasta saía no default.
+
+    `paste_ratio` tem precedência quando ambas aparecem.
+    """
+    if not isinstance(thermal, dict):
+        return default
+    for chave in ('paste_ratio', 'pasta_ratio'):
+        if chave in thermal:
+            try:
+                return float(thermal[chave])
+            except (TypeError, ValueError):
+                return default
+    return default
+
+
 def add_pth_pad(kicad_mod, number, x, y, pad_diam, drill_diam,
                 shape=None, size=None):
     """Adiciona pad through-hole.

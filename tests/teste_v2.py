@@ -15,6 +15,7 @@ import yaml
 import traceback
 import tempfile
 import shutil
+import copy
 
 # Forçar UTF-8 no stdout/stderr (evita UnicodeEncodeError com emojis ✅/❌ no
 # console do Windows, que por padrão usa cp1252). Ver AGENTS.md regra 6.
@@ -1382,6 +1383,64 @@ def test_grupo20():
         content = open(path, 'r', encoding='utf-8').read()
         assert '(size 0.8 0.8)' in content, "bga ignorou o override da bola A1"
     teste("bga honra override por nome da bola", t_bga_override)
+
+    def t_pasta_ratio_sinonimo():
+        """`pasta_ratio` é sinônimo de `paste_ratio` (o schema promete isso).
+
+        Ler só uma grafia fazia a outra ser descartada em silêncio — e o
+        _template.yaml ensina justamente `pasta_ratio`.
+        """
+        from footprint_helpers import read_paste_ratio
+        assert read_paste_ratio({'paste_ratio': 0.9}) == 0.9
+        assert read_paste_ratio({'pasta_ratio': 0.9}) == 0.9, \
+            "pasta_ratio (sinônimo declarado no schema) foi ignorado"
+        assert read_paste_ratio({}) == 0.5, "default deveria ser 0.5"
+        # paste_ratio tem precedência quando ambas aparecem
+        assert read_paste_ratio({'paste_ratio': 0.3, 'pasta_ratio': 0.9}) == 0.3
+        assert read_paste_ratio({'pasta_ratio': 'lixo'}) == 0.5, \
+            "valor inválido deveria cair no default, não estourar"
+    teste("thermal_pad: pasta_ratio == paste_ratio (sinônimo)",
+          t_pasta_ratio_sinonimo)
+
+    def t_total_contradiz_lados():
+        """`pinos.total` divergente da distribuição por lado deve dar ERRO.
+
+        Antes era descartado em silêncio: o Stx3 declarava total: 32 com
+        por_lado: 16 e gerava 64 pads sem aviso.
+        """
+        base = {
+            'nome': 'TESTE_Contradicao', 'padrao': 'quad_smd',
+            'pinos': {'pitch': 1.0, 'tamanho_pad': {'largura': 0.5, 'altura': 0.3}},
+            'corpo': {'largura': 8.0, 'comprimento': 8.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_contradicao.kicad_mod')
+
+        # total contradiz por_lado (o caso real do Stx3: 32 vs 16x4=64)
+        d = copy.deepcopy(base)
+        d['pinos'].update({'total': 32, 'por_lado': 16})
+        try:
+            gerar_footprint_universal(d, path)
+            assert False, "total=32 com por_lado=16 (=64) deveria dar erro"
+        except ValueError:
+            pass
+
+        # total não divisível por 4: 30//4=7 → 28 pads, sumiam 2 em silêncio
+        d = copy.deepcopy(base)
+        d['pinos']['total'] = 30
+        try:
+            gerar_footprint_universal(d, path)
+            assert False, "total=30 (não divisível por 4) deveria dar erro"
+        except ValueError:
+            pass
+
+        # coerente: não pode dar erro
+        d = copy.deepcopy(base)
+        d['pinos'].update({'total': 64, 'por_lado': 16})
+        gerar_footprint_universal(d, path)
+    teste("pinos.total contraditório → erro (não gera calado)",
+          t_total_contradiz_lados)
 
 
 # =============================================================================
