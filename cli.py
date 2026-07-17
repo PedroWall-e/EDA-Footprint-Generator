@@ -363,6 +363,63 @@ def cmd_batch(args):
 
 
 # =============================================================================
+# Subcomando: conferir
+# =============================================================================
+
+def cmd_conferir(args):
+    """Confere um .kicad_mod: colisão entre pads e, opcionalmente, gabarito."""
+    from conferir_footprint import conferir
+
+    ok, rel = conferir(args.footprint, gabarito=args.gabarito,
+                       folga_min=args.folga_min)
+
+    if args.json:
+        print(json.dumps({"ok": ok, **rel}, ensure_ascii=False, indent=2))
+        return 0 if ok else 1
+
+    print(f"{rel['footprint']}: {rel['pads']} pads")
+
+    col = rel['colisoes']
+    if col:
+        print(f"  ❌ {len(col)} par(es) de pads se sobrepõem (cobre em curto):")
+        for c in col[:8]:
+            print(f"       {c['pads'][0]}+{c['pads'][1]}  {c['sobreposicao_mm']}mm")
+        if len(col) > 8:
+            print(f"       ... e mais {len(col) - 8}")
+    else:
+        print("  ✅ sem sobreposição entre pads")
+
+    g = rel.get('gabarito')
+    if g:
+        print(f"\nvs gabarito ({g['nome']}):")
+        print(f"  pads: {g['total_meu']} gerado / {g['total_ref']} gabarito")
+        if g['faltando']:
+            print(f"  ❌ faltando no gerado: {g['faltando'][:12]}")
+        if g['sobrando']:
+            print(f"  ❌ sobrando no gerado: {g['sobrando'][:12]}")
+        if g['tamanhos_diferentes']:
+            print(f"  ❌ tamanho diferente em: {g['tamanhos_diferentes'][:12]}")
+
+        if g['offset_de_origem']:
+            dx, dy = g['offset_de_origem']
+            print(f"  ⚠️  os {g['divergentes']} pads divergem pelo MESMO deslocamento "
+                  f"({dx:+g}, {dy:+g}) mm")
+            print("      Isso é offset de ORIGEM, não erro de geometria: as posições")
+            print("      relativas batem. Reancore a origem (ou aceite, se intencional).")
+        elif g['divergentes']:
+            print(f"  ❌ geometria: {g['iguais']}/{g['total_ref']} idênticos "
+                  f"| divergentes: {g['divergentes']}")
+            for d in g['detalhes'][:8]:
+                print(f"       pad {d['pad']}: gabarito={d['gabarito']}  gerado={d['gerado']}")
+        else:
+            print(f"  ✅ geometria: {g['iguais']}/{g['total_ref']} pads idênticos")
+
+    print()
+    print("  OK" if ok else "  FALHOU")
+    return 0 if ok else 1
+
+
+# =============================================================================
 # Subcomando: schema
 # =============================================================================
 
@@ -427,6 +484,20 @@ def main():
     p_batch.add_argument('--dry-run', action='store_true',
                          help='Validar e listar o que seria gerado, sem escrever')
     p_batch.set_defaults(func=cmd_batch)
+
+    # conferir
+    p_conf = sub.add_parser(
+        'conferir',
+        help='Conferir um .kicad_mod (colisão de pads + gabarito opcional)')
+    p_conf.add_argument('footprint', help='Arquivo .kicad_mod gerado')
+    p_conf.add_argument('--gabarito',
+                        help='.kicad_mod de referência (oficial do fabricante) '
+                             'para comparar pad a pad')
+    p_conf.add_argument('--folga-min', type=float, default=0.0,
+                        dest='folga_min',
+                        help='Folga mínima entre pads em mm (default 0 = só '
+                             'acusa sobreposição real)')
+    p_conf.set_defaults(func=cmd_conferir)
 
     # schema
     p_schema = sub.add_parser('schema', help='Imprimir JSON Schema do componente')

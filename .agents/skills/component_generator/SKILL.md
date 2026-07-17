@@ -44,6 +44,10 @@ python cli.py --json tipos-3d
 # Batch: gerar todos de uma pasta
 python cli.py batch modulos_config/ -o saida/
 
+# Conferir o resultado (colisao de pads + gabarito opcional)
+python cli.py conferir saida/Componente.kicad_mod
+python cli.py conferir saida/Componente.kicad_mod --gabarito oficial.kicad_mod
+
 # Obter JSON Schema
 python cli.py schema
 ```
@@ -275,7 +279,9 @@ Para duplicar um preset como ponto de partida, copie um arquivo de `modulos_conf
 4. **Montar o YAML** — Preencher campos conforme schema
 5. **Validar** — `python cli.py --json validar componente.yaml`
 6. **Gerar** — `python cli.py --json gerar componente.yaml -o saida/`
-7. **Verificar saída** — Confirmar que os 3 arquivos foram gerados
+7. **Verificar saída** — `python cli.py conferir saida/<Nome>.kicad_mod`.
+   Confirmar que os arquivos existem NAO basta: "gerou sem erro" nao quer dizer
+   "esta certo". Se houver footprint oficial do fabricante, passe `--gabarito`.
 8. **Atualizar docs (se aplicável)** — Se a mudança alterou padrões, tipos 3D, campos YAML, presets ou comandos, atualize as tabelas desta SKILL, o `README.md`/`README.pt-BR.md`, o `schemas/component.schema.json` e o `CHANGELOG.md`. Ver a **Disciplina de Documentação** em `.agents/AGENTS.md`.
 
 > ⚠️ **Disciplina de documentação:** esta skill lista padrões, tipos 3D e presets. Sempre que `_PADROES`, `TEMPLATES_3D` ou os arquivos `_preset_*.yaml` mudarem, estas tabelas **devem** ser atualizadas na mesma alteração — caso contrário o agente passará a gerar com informação errada.

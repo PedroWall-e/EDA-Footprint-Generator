@@ -15,7 +15,14 @@ Gera 3 saídas por componente: `.kicad_mod` (footprint), `.kicad_sym` (símbolo)
 6. **UTF-8 sempre** — Use `-X utf8` ou `reconfigure(encoding='utf-8')` no Windows
 7. **Saída em `saida/`** — Arquivos gerados ficam em `saida/`, preview em `saida/_preview/`
 8. **Idioma**: Interface e documentação de usuário em Português (BR). `README.md` (inglês) e `README.pt-BR.md` devem ser mantidos em sincronia; templates de issue/PR em inglês.
-9. **📌 DISCIPLINA DE DOCUMENTAÇÃO (obrigatória)** — A cada mudança, pequena ou grande, atualize a documentação afetada **na mesma alteração**. Ver tabela abaixo. Documentação desatualizada é tratada como bug.
+9. **Footprint a partir de datasheet** — Não improvise: siga
+   `.agents/skills/footprint_de_datasheet/SKILL.md`. Ela traz as armadilhas que
+   já custaram caro (orientação do pad, datum, cota inventada) e o passo de
+   verificação obrigatório.
+10. **Verificar, não confiar no "ok"** — `python cli.py conferir <kicad_mod>`
+    depois de gerar. "Gerou sem erro" não quer dizer "está certo": já houve
+    footprint com pads em curto aprovado por três verificadores.
+11. **📌 DISCIPLINA DE DOCUMENTAÇÃO (obrigatória)** — A cada mudança, pequena ou grande, atualize a documentação afetada **na mesma alteração**. Ver tabela abaixo. Documentação desatualizada é tratada como bug.
 
 ## Disciplina de Documentação
 

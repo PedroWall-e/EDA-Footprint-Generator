@@ -1687,6 +1687,65 @@ def test_grupo20():
             assert 'borda' in str(e).lower(), e
     teste("origem: pino_1 converte para o centro do corpo", t_origem_pino_1)
 
+    def t_conferir_geometria_e_rotacao():
+        """`conferir` compara GEOMETRIA, não texto — a rotação conta.
+
+        O script de comparação da missão NINA ignorava GetOrientationDegrees()
+        e deu "71/71 idênticos" para um footprint com os pads em curto: um pad
+        1,15x0,70 girado 90° tem o mesmo sizeX/sizeY e ocupa cobre transposto.
+        """
+        from conferir_footprint import ler_pads, colisoes, comparar
+        base = os.path.join(saida_dir, 'TESTE_conf_base.kicad_mod')
+        gir = os.path.join(saida_dir, 'TESTE_conf_girado.kicad_mod')
+        # dois pads 1x2, um deles declarado girado 90 -> ocupa 2x1
+        cab = '(footprint "T" (version 20221018) (generator x) (layer "F.Cu")\n'
+        open(base, 'w', encoding='utf-8').write(
+            cab + '(pad "1" smd rect (at 0 0) (size 1 2) (layers "F.Cu"))\n)')
+        open(gir, 'w', encoding='utf-8').write(
+            cab + '(pad "1" smd rect (at 0 0 90) (size 1 2) (layers "F.Cu"))\n)')
+        assert ler_pads(base)['1'] == (0.0, 0.0, 1.0, 2.0)
+        assert ler_pads(gir)['1'] == (0.0, 0.0, 2.0, 1.0), \
+            "rotação de 90° tem que transpor a extensão do cobre"
+        # e a comparação tem que ver a diferença
+        cmp_ = comparar(ler_pads(gir), ler_pads(base))
+        assert cmp_['tamanhos_diferentes'] == ['1'], cmp_
+    teste("conferir: compara geometria, não texto (rotação)",
+          t_conferir_geometria_e_rotacao)
+
+    def t_conferir_offset_de_origem():
+        """Divergência igual em TODOS os pads = offset de origem, não erro.
+
+        Reportar como N erros esconderia que só falta reancorar a origem.
+        """
+        from conferir_footprint import comparar
+        ref = {'1': (0.0, 0.0, 1.0, 1.0), '2': (2.0, 0.0, 1.0, 1.0)}
+        deslocado = {'1': (1.0, -2.0, 1.0, 1.0), '2': (3.0, -2.0, 1.0, 1.0)}
+        c = comparar(deslocado, ref)
+        assert c['offset_de_origem'] == (1.0, -2.0), c
+        assert c['divergentes'] == 2
+
+        # deslocamento DIFERENTE por pad = erro de geometria de verdade
+        torto = {'1': (1.0, -2.0, 1.0, 1.0), '2': (3.5, -2.0, 1.0, 1.0)}
+        c2 = comparar(torto, ref)
+        assert c2['offset_de_origem'] is None, c2
+
+        # sem divergência
+        c3 = comparar(dict(ref), ref)
+        assert c3['divergentes'] == 0 and c3['offset_de_origem'] is None
+    teste("conferir: offset de origem != erro de geometria",
+          t_conferir_offset_de_origem)
+
+    def t_conferir_colisao_mesmo_net():
+        """Pads com o MESMO número são o mesmo net — tocar ali é intencional."""
+        from conferir_footprint import colisoes
+        # numeros diferentes sobrepostos -> curto
+        assert len(colisoes({'1': (0, 0, 1, 1), '2': (0.5, 0, 1, 1)})) == 1
+        # mesmo numero sobrepostos -> ignorado
+        assert colisoes({'1': (0, 0, 1, 1)}) == []
+        # separados -> nada
+        assert colisoes({'1': (0, 0, 1, 1), '2': (2, 0, 1, 1)}) == []
+    teste("conferir: mesmo número de pad = mesmo net", t_conferir_colisao_mesmo_net)
+
     def t_schema_realmente_ativo():
         """A validação de schema tem que estar ATIVA, não degradada em silêncio.
 
