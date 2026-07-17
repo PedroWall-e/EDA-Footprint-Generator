@@ -314,8 +314,10 @@ def add_3d_model(kicad_mod, nome_modelo, path_prefix='${KIPRJMOD}/', dados=None,
     else:
         # Resolver prefixo do YAML se disponível
         prefix = path_prefix
-        if dados:
-            yaml_path = dados.get('kicad', {}).get('modelo_3d_path', '')
+        if isinstance(dados, dict):
+            # `kicad:` pode existir vazio no YAML — nesse caso vira None, não {}
+            kicad = dados.get('kicad')
+            yaml_path = kicad.get('modelo_3d_path', '') if isinstance(kicad, dict) else ''
             if yaml_path:
                 prefix = yaml_path
         # Garantir que termina com /
@@ -332,6 +334,62 @@ def add_3d_model(kicad_mod, nome_modelo, path_prefix='${KIPRJMOD}/', dados=None,
 # =============================================================================
 # Pad helpers — pads THT, SMD, thermal
 # =============================================================================
+
+def build_override_map(dados, pad_w_def, pad_h_def):
+    """Normaliza `pinos.overrides` para {numero_do_pino: (largura, altura)}.
+
+    O schema (schemas/component.schema.json) declara `overrides` como `oneOf`,
+    ou seja, AMBAS as formas abaixo são válidas e precisam funcionar:
+
+      dict  — override por pino:
+          overrides:
+            "1": {largura: 1.2, altura: 0.8}
+
+      lista — override por grupo de pinos (ergonômico para castellated, onde
+              dezenas de pinos compartilham o mesmo tamanho):
+          overrides:
+            - numeros: [1, 9, 16]
+              largura: 2.5
+              altura: 1.2
+
+    Campos ausentes caem no default do padrão (pad_w_def / pad_h_def).
+    Entradas malformadas são ignoradas em vez de derrubar a geração.
+    """
+    override_map = {}
+    pinos = dados.get('pinos') if isinstance(dados, dict) else None
+    overrides = pinos.get('overrides') if isinstance(pinos, dict) else None
+    if not overrides:
+        return override_map
+
+    def _wh(ov):
+        return (float(ov.get('largura', pad_w_def)),
+                float(ov.get('altura', pad_h_def)))
+
+    if isinstance(overrides, dict):
+        for chave, ov in overrides.items():
+            if not isinstance(ov, dict):
+                continue
+            try:
+                override_map[int(chave)] = _wh(ov)
+            except (TypeError, ValueError):
+                continue
+
+    elif isinstance(overrides, list):
+        for ov in overrides:
+            if not isinstance(ov, dict):
+                continue
+            try:
+                w, h = _wh(ov)
+            except (TypeError, ValueError):
+                continue
+            for n in (ov.get('numeros') or []):
+                try:
+                    override_map[int(n)] = (w, h)
+                except (TypeError, ValueError):
+                    continue
+
+    return override_map
+
 
 def add_pth_pad(kicad_mod, number, x, y, pad_diam, drill_diam,
                 shape=None):

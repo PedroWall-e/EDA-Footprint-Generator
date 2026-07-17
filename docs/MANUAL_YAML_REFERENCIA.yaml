@@ -337,9 +337,13 @@ pin_types:
 #   tamanho_pad:
 #     largura: 0.8
 #     altura: 0.5
-#   overrides:                   # Pads com tamanho diferente (opcional)
-#     "1": {largura: 1.2, altura: 0.8}
+#   overrides:                   # Pads com tamanho diferente (opcional).
+#     "1": {largura: 1.2, altura: 0.8}    # Forma A (dict): por número de pino
 #     "15": {largura: 1.2, altura: 0.8}
+#   # Forma B (lista), por grupo de pinos — ver SEÇÃO 4 (quad_smd):
+#   #   - numeros: [1, 15]
+#   #     largura: 1.2
+#   #     altura: 0.8
 # margens: {courtyard: 0.25, silkscreen: 0.12, fab_line: 0.10}
 # kicad: {referencia: "U?", ...}
 
@@ -487,8 +491,19 @@ pin_types:
 #   por_lado: 4                  # Opção B: mesmo número nos 4 lados
 #   # OU
 #   total: 16                    # Opção C: total (dividido em 4)
-#   overrides:                   # Opcional: pads com tamanho diferente
-#     "1": {largura: 1.2, altura: 0.5}
+#   overrides:                   # Opcional: pads com tamanho diferente.
+#                                # Aceita DUAS formas (ver schema: oneOf):
+#     "1": {largura: 1.2, altura: 0.5}    # Forma A (dict): por número de pino
+#   # OU — Forma B (lista): por grupo de pinos. Prática em castellated/QFN,
+#   # onde dezenas de pinos (VCC/GND/RF) compartilham o mesmo tamanho:
+#   # overrides:
+#   #   - numeros: [1, 9, 16, 24]
+#   #     largura: 2.5
+#   #     altura: 1.2
+#   #   - numeros: [25, 28]
+#   #     largura: 3.0
+#   #     altura: 1.4
+#   # Campos largura/altura ausentes caem no default do padrão.
 #   thermal_pad:                 # Opcional: pad térmico central (QFN)
 #     largura: 2.5
 #     altura: 2.5

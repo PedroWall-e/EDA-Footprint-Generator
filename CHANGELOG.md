@@ -27,6 +27,9 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Seção de "good first issues" no `CONTRIBUTING.md`
 
 ### Corrigido
+- **`pinos.overrides` em lista voltou a funcionar** — o motor v2 assumia que `overrides` era sempre um dict e estourava `AttributeError: 'list' object has no attribute 'get'` na forma em lista (`- numeros: [...]`), que o `schemas/component.schema.json` declara como válida (`oneOf`). Regressão da reescrita do v1 → v2: o v1 suportava a forma lista via `geometria_pads._construir_override_map`. Afetava `quad_smd`/castellated — os presets `RM200-v2` e `ModuloLTE_4Lados` não geravam. A normalização das duas formas agora vive num lugar só (`footprint_helpers.build_override_map`). Batch dos 40 presets: 40/40.
+- `add_3d_model`: não estoura mais quando o YAML tem `kicad:` presente porém vazio (vira `None`, não `{}`)
+- Documentadas as duas formas de `pinos.overrides` no `MANUAL_YAML_REFERENCIA.yaml` (a forma lista não estava documentada)
 - CI: testes falhavam no Windows (`UnicodeEncodeError` ao imprimir emojis) — `tests/teste_v2.py` agora força UTF-8 no stdout/stderr; workflow define `PYTHONUTF8`/`PYTHONIOENCODING`
 - CI: testes falhavam no Python 3.9 (sintaxe `X | None` exige 3.10+) — matriz do CI passa a 3.10/3.11/3.12; `requires-python` ajustado para `>=3.10` (alinhado ao README)
 - `LICENSE` agora contém o texto completo e verbatim da GPL-3.0 (antes só o cabeçalho), permitindo a detecção correta da licença pelo GitHub e cumprindo a exigência da GPL de distribuir o texto integral

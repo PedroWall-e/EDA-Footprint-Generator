@@ -53,6 +53,7 @@ from footprint_helpers import (
     add_pth_pad,
     add_smd_pad,
     add_thermal_pad,
+    build_override_map,
     validate_annular_ring,
     postprocess_v6,
     save_footprint,
@@ -764,16 +765,12 @@ def _gerar_quad_smd(dados, caminho_saida):
     pad_num = 1
     pads_info = []  # lista de (num, x, y, w, h)
 
-    # Verificar overrides de tamanho
-    overrides = _get(dados, 'pinos', 'overrides', default={})
+    # Overrides de tamanho — aceita as duas formas do schema (dict e lista)
+    override_map = build_override_map(dados, pad_w_def, pad_h_def)
 
     def _pad_size(num):
         """Retorna (w, h) para o pad num, considerando overrides."""
-        ov = overrides.get(str(num), overrides.get(num, None))
-        if ov:
-            return (float(ov.get('largura', pad_w_def)),
-                    float(ov.get('altura', pad_h_def)))
-        return (pad_w_def, pad_h_def)
+        return override_map.get(int(num), (pad_w_def, pad_h_def))
 
     # Esquerdo: cima → baixo (pads orientados horizontalmente)
     if n_esq > 0:

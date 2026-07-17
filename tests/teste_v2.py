@@ -1223,6 +1223,84 @@ def test_grupo19():
 
 
 # =============================================================================
+# GRUPO 20: pinos.overrides — as duas formas do schema (dict e lista)
+# =============================================================================
+def test_grupo20():
+    header("GRUPO 20: pinos.overrides — formas dict e lista")
+
+    from footprint_helpers import build_override_map
+    from gerador_footprint_v2 import gerar_footprint_universal
+    saida_dir = os.path.join(PROJ, 'saida', '_testes_overrides')
+    os.makedirs(saida_dir, exist_ok=True)
+
+    W, H = 1.0, 0.5  # defaults do padrão
+
+    def t_forma_dict():
+        """Forma dict: {"1": {largura, altura}} → mapeada por pino."""
+        dados = {'pinos': {'overrides': {'1': {'largura': 2.5, 'altura': 1.2}}}}
+        m = build_override_map(dados, W, H)
+        assert m == {1: (2.5, 1.2)}, f"Esperado {{1: (2.5, 1.2)}}, obtido {m}"
+    teste("overrides forma dict", t_forma_dict)
+
+    def t_forma_lista():
+        """Forma lista: [{numeros: [...], largura, altura}] → expande o grupo."""
+        dados = {'pinos': {'overrides': [
+            {'numeros': [1, 9, 16], 'largura': 2.5, 'altura': 1.2},
+            {'numeros': [25], 'largura': 3.0, 'altura': 1.4},
+        ]}}
+        m = build_override_map(dados, W, H)
+        assert m == {1: (2.5, 1.2), 9: (2.5, 1.2), 16: (2.5, 1.2), 25: (3.0, 1.4)}, \
+            f"Grupo não expandido corretamente: {m}"
+    teste("overrides forma lista (grupo de pinos)", t_forma_lista)
+
+    def t_campo_ausente_usa_default():
+        """largura/altura ausentes caem no default do padrão."""
+        dados = {'pinos': {'overrides': [{'numeros': [3], 'largura': 2.0}]}}
+        m = build_override_map(dados, W, H)
+        assert m == {3: (2.0, H)}, f"Default de altura não aplicado: {m}"
+    teste("overrides: campo ausente usa default", t_campo_ausente_usa_default)
+
+    def t_ausente_ou_vazio():
+        """Sem overrides (ou vazio/None) → mapa vazio, sem erro."""
+        for dados in ({}, {'pinos': {}}, {'pinos': None},
+                      {'pinos': {'overrides': None}}, {'pinos': {'overrides': []}}):
+            m = build_override_map(dados, W, H)
+            assert m == {}, f"Esperado mapa vazio para {dados}, obtido {m}"
+    teste("overrides ausente/vazio → mapa vazio", t_ausente_ou_vazio)
+
+    def t_malformado_nao_derruba():
+        """Entradas malformadas são ignoradas em vez de estourar."""
+        dados = {'pinos': {'overrides': ['lixo', {'sem_numeros': 1},
+                                         {'numeros': ['x'], 'largura': 2.0}]}}
+        m = build_override_map(dados, W, H)
+        assert m == {}, f"Malformado deveria ser ignorado, obtido {m}"
+    teste("overrides malformado não derruba a geração", t_malformado_nao_derruba)
+
+    def t_quad_smd_lista_gera():
+        """Regressão: quad_smd com overrides em lista costumava estourar
+        AttributeError ('list' object has no attribute 'get')."""
+        dados = {
+            'nome': 'TESTE_Override_Lista',
+            'padrao': 'quad_smd',
+            'pinos': {
+                'total': 8, 'pitch': 1.0,
+                'tamanho_pad': {'largura': 1.0, 'altura': 0.5},
+                'overrides': [{'numeros': [1, 5], 'largura': 2.5, 'altura': 1.2}],
+            },
+            'corpo': {'largura': 6.0, 'comprimento': 6.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'descricao': 'teste', 'tags': 'teste'},
+        }
+        path = os.path.join(saida_dir, 'TESTE_override_lista.kicad_mod')
+        gerar_footprint_universal(dados, path)
+        content = open(path, 'r', encoding='utf-8').read()
+        # 2 pads devem ter o tamanho do override (em alguma das orientações)
+        n = content.count('(size 2.5 1.2)') + content.count('(size 1.2 2.5)')
+        assert n == 2, f"Esperado 2 pads com override, encontrado {n}"
+    teste("quad_smd com overrides em lista gera (regressão)", t_quad_smd_lista_gera)
+
+
+# =============================================================================
 # EXECUÇÃO
 # =============================================================================
 if __name__ == '__main__':
@@ -1254,6 +1332,7 @@ if __name__ == '__main__':
     test_grupo17()  # BGA
     test_grupo18()  # Validação conteúdo KiCad
     test_grupo19()  # Shim edge cases
+    test_grupo20()  # pinos.overrides (dict e lista)
 
     # ── Relatório Final ──────────────────────────────────────────────────
     print(f"\n{'='*70}")
