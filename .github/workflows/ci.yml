@@ -29,7 +29,7 @@ jobs:
     - name: Instalar dependências base
       run: |
         python -m pip install --upgrade pip
-        pip install PyQt5 PyYAML matplotlib numpy
+        pip install PyQt5 PyYAML matplotlib numpy jsonschema
 
     - name: Configurar KicadModTree
       run: |

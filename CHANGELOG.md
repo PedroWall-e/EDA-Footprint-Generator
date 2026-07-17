@@ -15,6 +15,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ### Corrigido
 - **`conector_pth` gerava footprints inutilizáveis** — o shim mapeava para `dual_pth`, que é de **duas** fileiras: `total // 2` descartava o pino ímpar e `afastamento_colunas` (ausente nos YAMLs de header) colapsava as colunas em x=0. Resultado: `Conn_01x03` declarava `total: 3` e saía com **2 pads empilhados em (0,0)**; `Conn_01x06_PinHeader` saía com os pares 1&6, 2&5, 3&4 coincidentes. Ambos validavam `ok: true`. `conector_pth` agora mapeia para `single_row_pth`.
+- **A validação de JSON Schema nunca rodou no CI** — `validador_schema` faz `except ImportError: return (True, [])`, ou seja, sem a lib `jsonschema` ele devolve **"válido" para qualquer coisa** (um YAML sem `nome` passa). E o CI instalava só `PyQt5 PyYAML matplotlib numpy`. Resultado: a regra nº4 do `AGENTS.md` ("JSON Schema é a verdade") não era verificada — todo YAML passava. `jsonschema` agora é instalada no CI e declarada em `requirements.txt`/`pyproject.toml`, e um teste falha se a validação estiver degradada. Descoberto porque o teste do typo de pad passava local e falhava no CI.
 - **Typo em campo opcional de pad passava calado** — `custom_pad` não declarava `additionalProperties`, então `formto: circulo` / `montgem: pth` eram ignorados e o pad saía retangular SMD sem furo, com `ok: true`. Agora é erro. (Typo em campo *obrigatório* já era pego, via `required`.)
 
 ### Removido

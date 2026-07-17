@@ -1604,6 +1604,26 @@ def test_grupo20():
                 f"1x{total} tem pads coincidentes: {pos}"
     teste("header 1xN gera fileira única (regressão)", t_single_row_pth)
 
+    def t_schema_realmente_ativo():
+        """A validação de schema tem que estar ATIVA, não degradada em silêncio.
+
+        `validador_schema` faz `except ImportError: return (True, [])` — sem a
+        lib `jsonschema` ele devolve "válido" para QUALQUER coisa. O CI não a
+        instalava, então a regra "JSON Schema é a verdade" (AGENTS.md) nunca
+        foi verificada lá: todo YAML passava.
+        """
+        try:
+            import jsonschema  # noqa: F401
+        except ImportError:
+            assert False, ("jsonschema não instalado — a validação de schema "
+                           "está devolvendo 'válido' para tudo. "
+                           "Instale: pip install jsonschema")
+        from validador_schema import validar_schema
+        ok, erros = validar_schema({'padrao': 'custom'})   # falta `nome`
+        assert not ok, ("schema aceitou YAML sem 'nome' — validação inativa?")
+    teste("validação de schema está ativa (jsonschema presente)",
+          t_schema_realmente_ativo)
+
     def t_schema_typo_pad():
         """Typo em campo opcional de pad → erro, não default silencioso.
 

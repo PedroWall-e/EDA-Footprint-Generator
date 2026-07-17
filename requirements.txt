@@ -12,6 +12,10 @@ PyQt5>=5.15
 # --- Leitura de configuração YAML ---
 PyYAML>=6.0
 
+# --- Validação do JSON Schema dos componentes ---
+# Sem ela, validador_schema devolve "valido" para tudo (falha silenciosa).
+jsonschema>=4.0
+
 # --- Visualização 2D (canvas matplotlib embutido no Qt) ---
 matplotlib>=3.7
 
