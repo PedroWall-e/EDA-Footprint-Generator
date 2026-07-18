@@ -182,51 +182,54 @@ def draw_pin1_marker(kicad_mod, x, y, style='dot', layer='F.SilkS',
         size     : dimensão do marcador (raio/comprimento)
         layer    : camada (padrão F.SilkS)
         line_width: espessura da linha
+
+    As linhas saem marcadas com o atributo `_marcador_pino1`, para que o recorte
+    de silk sobre pad (`recortar_silk_sobre_pads`) saiba avisar quando apagar o
+    marcador — sem ele o footprint perde a indicação de polaridade em silêncio.
     """
     if style == 'dot':
         # Duas linhas em L — padrão castellated (linhas 126-129)
-        kicad_mod.append(Line(
-            start=[x - size, y - size], end=[x - size, y + size],
-            layer=layer, width=line_width,
-        ))
-        kicad_mod.append(Line(
-            start=[x - size, y - size], end=[x, y - size],
-            layer=layer, width=line_width,
-        ))
+        linhas = [
+            Line(start=[x - size, y - size], end=[x - size, y + size],
+                 layer=layer, width=line_width),
+            Line(start=[x - size, y - size], end=[x, y - size],
+                 layer=layer, width=line_width),
+        ]
 
     elif style == 'chamfer':
         # Linha diagonal: canto superior-esquerdo (DIP/SOIC)
         # x, y = canto do corpo; size = raio do arco
-        kicad_mod.append(Line(
-            start=[x, y + size], end=[x + size, y],
-            layer=layer, width=line_width,
-        ))
+        linhas = [
+            Line(start=[x, y + size], end=[x + size, y],
+                 layer=layer, width=line_width),
+        ]
 
     elif style == 'arrow':
         # Linha vertical simples (conector header)
-        kicad_mod.append(Line(
-            start=[x, y - size], end=[x, y + size],
-            layer=layer, width=line_width,
-        ))
+        linhas = [
+            Line(start=[x, y - size], end=[x, y + size],
+                 layer=layer, width=line_width),
+        ]
 
     elif style == 'triangle':
         # Triângulo equilátero apontando para a direita
         h = size * math.sqrt(3) / 2
-        kicad_mod.append(Line(
-            start=[x, y - size / 2], end=[x, y + size / 2],
-            layer=layer, width=line_width,
-        ))
-        kicad_mod.append(Line(
-            start=[x, y - size / 2], end=[x + h, y],
-            layer=layer, width=line_width,
-        ))
-        kicad_mod.append(Line(
-            start=[x, y + size / 2], end=[x + h, y],
-            layer=layer, width=line_width,
-        ))
+        linhas = [
+            Line(start=[x, y - size / 2], end=[x, y + size / 2],
+                 layer=layer, width=line_width),
+            Line(start=[x, y - size / 2], end=[x + h, y],
+                 layer=layer, width=line_width),
+            Line(start=[x, y + size / 2], end=[x + h, y],
+                 layer=layer, width=line_width),
+        ]
 
     else:
         log.warning(f"Estilo de marcador de pino 1 desconhecido: '{style}'")
+        return
+
+    for linha in linhas:
+        linha._marcador_pino1 = True
+        kicad_mod.append(linha)
 
 
 # =============================================================================
@@ -564,6 +567,11 @@ def pad_clearance_report(pads, min_clearance=0.2):
     folga é o max(dx, dy). Pads com o MESMO número são o mesmo net (ex.: um
     pino com dois pads) e são ignorados — tocar ali é intencional.
     """
+    # Tolerância p/ ruído de ponto flutuante: um vão nominal de 0,2 mm sai da
+    # subtração como 0,19999999 e, sem isso, era sinalizado como "< 0.20mm" —
+    # aviso contraditório (mostrava 0.200 e dizia ser menor). Um pitch nominal
+    # não pode disparar aviso; 0,19 real ainda dispara.
+    eps = 1e-6
     sobrepostos, curtos = [], []
     for i in range(len(pads)):
         for j in range(i + 1, len(pads)):
@@ -574,9 +582,9 @@ def pad_clearance_report(pads, min_clearance=0.2):
             dx = abs(xi - xj) - (wi + wj) / 2
             dy = abs(yi - yj) - (hi + hj) / 2
             gap = max(dx, dy)
-            if gap < 0:
+            if gap < -eps:
                 sobrepostos.append((na, nb, round(gap, 4)))
-            elif gap < min_clearance:
+            elif gap < min_clearance - eps:
                 curtos.append((na, nb, round(gap, 4)))
     return sobrepostos, curtos
 
@@ -678,17 +686,226 @@ def apply_footprint_margins(kicad_mod, dados):
             log.warning("%s inválido (%r) — ignorado", campo, valor)
 
 
+# =============================================================================
+# Recorte de silkscreen sobre pads
+#
+# Por que existe: o gerador desenha o contorno de corpo inteiro (retângulo,
+# chanfro do pino 1) sem recortá-lo nos pads. Onde o contorno cruza cobre
+# exposto, sai tinta de silk sobre a área de solda — o KiCad acusa "silk over
+# pad" no DRC da placa e é defeito real de fabricação. Aconteceu em 15 dos 41
+# presets, com o silk cobrindo a largura inteira dos pads em DIP/QFN/SOT.
+#
+# A KicadModTree tem `clean_silk_mask_overlap`, mas só na cópia `_dev` (que
+# depende de `kilibs`, ausente aqui); a versão que o gerador carrega não a tem.
+# Trocar a versão mudaria a saída de TODOS os footprints. Então recortamos as
+# formas que o gerador de fato emite: segmentos de linha (contorno e chanfro).
+# =============================================================================
+
+# Folga borda-a-borda entre a tinta de silk e o cobre exposto do pad.
+# 0.2 mm é o valor da biblioteca oficial do KiCad; a metade da espessura da
+# linha é somada em tempo de recorte, porque a linha é tinta com largura, não
+# um eixo sem espessura.
+FOLGA_SILK_PAD = 0.2
+
+
+def _caixa_pad(pad):
+    """Caixa envolvente (x0, y0, x1, y1) do pad, sem folga.
+
+    Pad girado 90°/270° troca largura/altura. Rotação arbitrária usa a caixa
+    envolvente do retângulo girado (conservador — recorta um pouco a mais nos
+    cantos, nunca deixa tinta sobre cobre). Círculo usa a própria caixa.
+    """
+    cx, cy = pad.at.x, pad.at.y
+    w, h = pad.size.x, pad.size.y
+    rot = abs(float(getattr(pad, 'rotation', 0) or 0)) % 180.0
+    if abs(rot - 90.0) < 1e-6:
+        w, h = h, w
+    elif rot > 1e-6:
+        a = math.radians(rot)
+        w, h = (abs(w * math.cos(a)) + abs(h * math.sin(a)),
+                abs(w * math.sin(a)) + abs(h * math.cos(a)))
+    return (cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+
+
+def _intervalo_dentro(p0, p1, caixa):
+    """Liang-Barsky: intervalo (t0, t1) em [0,1] onde o segmento p0→p1 está
+    DENTRO da caixa axis-aligned. None se não entra.
+
+    Vale para qualquer orientação (horizontal, vertical, diagonal do chanfro)
+    com o mesmo código.
+    """
+    x0, y0, x1, y1 = caixa
+    dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, p0[0] - x0), (dx, x1 - p0[0]),
+                 (-dy, p0[1] - y0), (dy, y1 - p0[1])):
+        if abs(p) < 1e-12:
+            if q < 0:
+                return None            # paralelo à borda e fora dela
+        else:
+            r = q / p
+            if p < 0:
+                if r > t1:
+                    return None
+                t0 = max(t0, r)
+            else:
+                if r < t0:
+                    return None
+                t1 = min(t1, r)
+    return (t0, t1) if t0 < t1 else None
+
+
+def _anel_cruza_caixa(cx, cy, r, caixa, margem):
+    """True se o anel (círculo de raio r, com folga `margem`) toca a caixa.
+
+    O anel cruza a caixa quando o ponto mais próximo do centro está a <= r+margem
+    E o mais distante a >= r-margem — senão o anel está todo dentro ou todo fora.
+    """
+    x0, y0, x1, y1 = caixa
+    dx = max(x0 - cx, 0.0, cx - x1)
+    dy = max(y0 - cy, 0.0, cy - y1)
+    perto = math.hypot(dx, dy)
+    fx = max(cx - x0, x1 - cx)
+    fy = max(cy - y0, y1 - cy)
+    longe = math.hypot(fx, fy)
+    return perto <= r + margem and longe >= r - margem
+
+
+def _partes_livres(cobertos):
+    """Dado os intervalos cobertos em [0,1], devolve os intervalos LIVRES."""
+    if not cobertos:
+        return [(0.0, 1.0)]
+    livres, cur = [], 0.0
+    for a, b in sorted((max(0.0, a), min(1.0, b)) for a, b in cobertos):
+        if a > cur:
+            livres.append((cur, a))
+        cur = max(cur, b)
+    if cur < 1.0:
+        livres.append((cur, 1.0))
+    return livres
+
+
+def recortar_silk_sobre_pads(kicad_mod, folga=FOLGA_SILK_PAD, min_seg=0.05):
+    """Recorta os segmentos de F.SilkS que cruzam cobre exposto.
+
+    Só recorta `Line` de camada *.SilkS. F.Fab é documentação e fica intacto.
+    O gerador desenha até os corpos redondos como segmentos de linha
+    (`draw_circle_segments`/`draw_dshape`), então eles TAMBÉM são recortados
+    aqui. Nós `Circle`/`Arc` de silk o gerador não emite hoje; se algum existir e
+    cruzar um pad, ele NÃO é recortado — então emitimos aviso, em vez de deixar
+    tinta sobre cobre passar calada. Devolve (n_recortadas, n_removidas,
+    marcadores_perdidos).
+    """
+    if Line is None:
+        return (0, 0, 0)
+
+    pads = []
+    for no in kicad_mod.getAllChilds():
+        if type(no).__name__ != 'Pad':
+            continue
+        camadas = list(getattr(no, 'layers', []) or [])
+        if any('Mask' in c or 'Paste' in c for c in camadas):
+            pads.append(_caixa_pad(no))
+    if not pads:
+        return (0, 0, 0)
+
+    # Só recortamos linhas de topo: as coordenadas de uma linha aninhada num
+    # Translation/Rotation são locais, e recortá-las contra pads em coordenadas
+    # absolutas daria resultado errado. Nenhum padrão aninha silk hoje; se algum
+    # passar a aninhar, avisamos em vez de deixar o recorte falhar calado.
+    silk, silk_aninhado = [], 0
+    for no in kicad_mod.getAllChilds():
+        if type(no).__name__ != 'Line':
+            continue
+        if 'SilkS' not in str(getattr(no, 'layer', '')):
+            continue
+        if no.getParent() is kicad_mod:
+            silk.append(no)
+        else:
+            silk_aninhado += 1
+
+    recortadas = removidas = perdidos = 0
+    for linha in silk:
+        p0 = (linha.start_pos.x, linha.start_pos.y)
+        p1 = (linha.end_pos.x, linha.end_pos.y)
+        margem = folga + 0.5 * float(getattr(linha, 'width', 0.12) or 0.12)
+        cobertos = []
+        for (x0, y0, x1, y1) in pads:
+            iv = _intervalo_dentro(p0, p1, (x0 - margem, y0 - margem,
+                                            x1 + margem, y1 + margem))
+            if iv:
+                cobertos.append(iv)
+        if not cobertos:
+            continue
+
+        livres = [(a, b) for a, b in _partes_livres(cobertos)
+                  if (b - a) * math.dist(p0, p1) >= min_seg]
+        kicad_mod.remove(linha)
+        if not livres:
+            removidas += 1
+            if getattr(linha, '_marcador_pino1', False):
+                perdidos += 1
+            continue
+        recortadas += 1
+        for a, b in livres:
+            novo = Line(
+                start=[p0[0] + (p1[0] - p0[0]) * a, p0[1] + (p1[1] - p0[1]) * a],
+                end=[p0[0] + (p1[0] - p0[0]) * b, p0[1] + (p1[1] - p0[1]) * b],
+                layer=linha.layer, width=linha.width,
+            )
+            if getattr(linha, '_marcador_pino1', False):
+                novo._marcador_pino1 = True
+            kicad_mod.append(novo)
+
+    if perdidos:
+        log.warning('%d marcador(es) de pino 1 removido(s) por cair(em) sobre '
+                    'cobre — o footprint fica sem indicação de polaridade',
+                    perdidos)
+    if silk_aninhado:
+        log.warning('%d linha(s) de silk aninhada(s) não foram recortadas — '
+                    'silk sobre pad pode escapar; desenhe o silk no topo do '
+                    'footprint', silk_aninhado)
+
+    # Círculos/arcos de silk não são recortados. Nenhum padrão os emite hoje,
+    # mas avisar impede que uma tinta sobre cobre entre calada se algum for
+    # adicionado no futuro.
+    for no in kicad_mod.getAllChilds():
+        if type(no).__name__ not in ('Circle', 'Arc'):
+            continue
+        if 'SilkS' not in str(getattr(no, 'layer', '')):
+            continue
+        centro = getattr(no, 'center_pos', None) or getattr(no, 'center', None)
+        raio = no.getRadius() if hasattr(no, 'getRadius') else \
+            getattr(no, 'radius', None)
+        if centro is None or raio is None:
+            continue
+        margem = folga + 0.5 * float(getattr(no, 'width', 0.12) or 0.12)
+        if any(_anel_cruza_caixa(centro.x, centro.y, raio, caixa, margem)
+               for caixa in pads):
+            log.warning('%s de silk sobre pad não é recortado — tinta sobre '
+                        'cobre pode passar; converta para segmentos de linha',
+                        type(no).__name__)
+            break
+
+    return (recortadas, removidas, perdidos)
+
+
 def save_footprint(kicad_mod, caminho_saida, v6=True, attr='through_hole',
-                   dados=None):
+                   dados=None, recortar_silk=True):
     """Salva o footprint em arquivo .kicad_mod.
 
     Se v6=True, aplica postprocess_v6() para compatibilidade com KiCad 6+.
     Se `dados` for passado, aplica as margens de topo (solder_paste_margin /
     solder_mask_margin) antes de serializar.
+    Se `recortar_silk` (padrão), recorta o silkscreen sobre os pads antes de
+    serializar — o ponto único de saída dos 8 padrões.
     """
     import os
 
     apply_footprint_margins(kicad_mod, dados)
+
+    if recortar_silk:
+        recortar_silk_sobre_pads(kicad_mod)
 
     # Garantir que o diretório existe
     dir_saida = os.path.dirname(caminho_saida)

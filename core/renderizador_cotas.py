@@ -177,15 +177,26 @@ class DesenhadorCotas:
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
 
-        # Overall width
+        # Passo de empilhamento das cotas. As cotas "de cima" (pitch e largura
+        # do corpo) caem quase na mesma altura numa peça pequena (0402): o texto
+        # tem tamanho fixo em pontos e os offsets são em mm, então elas se
+        # sobrepõem. O passo proporcional (com piso) garante separação legível
+        # tanto num 0402 quanto num DIP.
+        span = max(max_x - min_x, max_y - min_y, 1.0)
+        step = max(1.3, span * 0.12)
+
+        top = max(max_y, -corpo['y0'] if corpo else max_y,
+                  -corpo['y1'] if corpo else max_y)
+
+        # Overall width (abaixo)
         if max_x - min_x > 0.1:
-            self.cota_horizontal(min_x, max_x, min_y, offset=-2.0)
+            self.cota_horizontal(min_x, max_x, min_y, offset=-step * 1.4)
 
-        # Overall height
+        # Overall height (à direita)
         if max_y - min_y > 0.1:
-            self.cota_vertical(min_y, max_y, max_x, offset=2.0)
+            self.cota_vertical(min_y, max_y, max_x, offset=step * 1.4)
 
-        # Pitch (between first two pads on same row/column)
+        # Pitch (topo, junto à fileira de pads)
         sorted_by_x = sorted(pads, key=lambda p: (round(-p['y'], 2), p['x']))
         if len(sorted_by_x) >= 2:
             p1 = sorted_by_x[0]
@@ -194,22 +205,22 @@ class DesenhadorCotas:
             dy = abs(p2['y'] - p1['y'])
             if 0.1 < dx < 10 and dy < 0.1:  # horizontal pitch
                 self.cota_pitch(p1['x'], -p1['y'], p2['x'], -p2['y'],
-                                offset=1.0, label=f'pitch {dx:.2f}')
+                                offset=step, label=f'pitch {dx:.2f}')
             elif 0.1 < dy < 10 and dx < 0.1:  # vertical pitch
                 self.cota_pitch(p1['x'], -p1['y'], p2['x'], -p2['y'],
-                                offset=1.0, label=f'pitch {dy:.2f}')
+                                offset=step, label=f'pitch {dy:.2f}')
 
-        # Body dimensions if provided
+        # Body dimensions if provided — largura empilhada ACIMA do pitch
         if corpo:
             bx0, by0, bx1, by1 = corpo['x0'], -corpo['y0'], corpo['x1'], -corpo['y1']
             bw = abs(bx1 - bx0)
             bh = abs(by1 - by0)
             if bw > 0.1:
-                self.cota_horizontal(bx0, bx1, max(by0, by1), offset=1.0,
+                self.cota_horizontal(bx0, bx1, top, offset=step * 2.4,
                                      label=f'corpo {bw:.1f}')
             if bh > 0.1:
                 self.cota_vertical(min(by0, by1), max(by0, by1), min(bx0, bx1),
-                                   offset=-2.0, label=f'corpo {bh:.1f}')
+                                   offset=-step * 1.4, label=f'corpo {bh:.1f}')
 
         # Pad size label on first pad
         if pads:

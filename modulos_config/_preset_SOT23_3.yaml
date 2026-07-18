@@ -21,7 +21,10 @@
 
 nome: "SOT23_3"
 padrao: "dual_smd"
-simbolo: "mosfet_n"         # símbolo esquemático: MOSFET canal N (G/D/S)
+# O simbolo era "mosfet_n" (G/D/S) enquanto pin_names abaixo descreve o NPN
+# (B/E/C) documentado no cabecalho: o simbolo saia com nomes de MOSFET e o
+# footprint com a pinagem de bipolar. Aqui manda a pinagem, que e' o dado.
+simbolo: "transistor"       # símbolo esquemático: NPN bipolar (B/E/C)
 tipo_3d: "sot23"
 
 # --- Corpo ---
@@ -33,6 +36,7 @@ corpo:
 # --- Pinos ---
 pinos:
   total: 3
+  pinagem: "BEC"             # pino 1=Base, 2=Emissor, 3=Coletor (SOT-23 NPN)
   pitch: 0.95                # mm — espacamento entre pinos no mesmo lado
   distribuicao: [2, 1]       # 2 pinos lado esquerdo, 1 pino lado direito
   tamanho_pad:

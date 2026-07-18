@@ -1805,6 +1805,265 @@ def test_grupo20():
 
 
 # =============================================================================
+# GRUPO 21: Regressão — símbolo×footprint, silk sobre pad e verificadores
+# =============================================================================
+def test_grupo21():
+    header("GRUPO 21: Símbolo×footprint, silk sobre pad, verificadores")
+
+    from gerador_footprint_v2 import gerar_footprint_universal
+    from gerador_symbol import gerar_symbol
+    saida_dir = os.path.join(PROJ, 'saida', '_testes_g21')
+    os.makedirs(saida_dir, exist_ok=True)
+
+    def _gerar_par(nome_preset):
+        """Gera .kicad_mod + .kicad_sym de um preset e devolve os caminhos."""
+        f = os.path.join(PROJ, 'modulos_config', f'{nome_preset}.yaml')
+        dados = yaml.safe_load(open(f, encoding='utf-8'))
+        nome = dados.get('nome', nome_preset)
+        mod = os.path.join(saida_dir, f'{nome}.kicad_mod')
+        sym = os.path.join(saida_dir, f'{nome}.kicad_sym')
+        gerar_footprint_universal(dados, mod)
+        gerar_symbol(dados, sym)
+        return mod, sym
+
+    def t_simbolo_footprint_batem():
+        """Os números de pino do símbolo têm que casar com os pads do footprint.
+
+        O KiCad casa pino↔pad pelo NÚMERO; símbolo e footprint saem do mesmo
+        YAML por caminhos independentes e nada nunca os comparava — 9 dos 41
+        presets divergiam. Aqui cobrimos representantes de cada família: DIP
+        (dual_pth), quad_smd numerado (STX3), custom+grupos_pads (NINA),
+        transistor (SOT23_3, que emitia B/E/C como número).
+        """
+        from conferir_footprint import conferir_simbolo
+        for preset in ('_preset_DIP14', 'Stx3', 'NINA_B406', '_preset_SOT23_3'):
+            mod, sym = _gerar_par(preset)
+            r = conferir_simbolo(mod, sym)
+            assert not r['pinos_sem_pad'], \
+                f"{preset}: pino sem pad correspondente {r['pinos_sem_pad']}"
+            assert not r['numeracao_incompativel'], \
+                f"{preset}: numeração símbolo×footprint incompatível"
+    teste("símbolo×footprint: números de pino casam com pads",
+          t_simbolo_footprint_batem)
+
+    def t_conferir_simbolo_acusa():
+        """O conferidor tem que ACUSAR um símbolo que não casa — senão é enfeite.
+
+        Pega um par correto, troca o número de um pino no símbolo e confere que
+        o conferidor reclama (pino sem pad).
+        """
+        from conferir_footprint import conferir_simbolo
+        mod, sym = _gerar_par('_preset_DIP14')
+        quebrado = os.path.join(saida_dir, 'DIP14_quebrado.kicad_sym')
+        texto = open(sym, encoding='utf-8').read().replace(
+            '(number "7"', '(number "99"', 1)
+        open(quebrado, 'w', encoding='utf-8').write(texto)
+        r = conferir_simbolo(mod, quebrado)
+        assert '99' in r['pinos_sem_pad'], \
+            f"conferidor não acusou o pino 99 inexistente: {r['pinos_sem_pad']}"
+        assert '7' in r['pads_sem_pino'], \
+            f"conferidor não notou o pad 7 sem pino: {r['pads_sem_pino']}"
+    teste("conferir_simbolo acusa símbolo que não casa (negativo)",
+          t_conferir_simbolo_acusa)
+
+    def t_gerar_symbol_propaga_erro():
+        """gerar_symbol tem que PROPAGAR erro, não engolir e devolver ok.
+
+        Regressão: um `except Exception: print(...)` no fim de gerar_symbol
+        engolia tudo — o KeyError 'pinos' do NINA virava "ok" sem arquivo. Um
+        símbolo de forma fixa (resistor, 2 pinos) sobre uma peça de 3 pads não
+        pode casar; a geração deve levantar em vez de gravar arquivo torto.
+        """
+        alvo = os.path.join(saida_dir, 'PROVA_engolido.kicad_sym')
+        if os.path.exists(alvo):
+            os.remove(alvo)
+        dados = {
+            'nome': 'PROVA_Engolido', 'padrao': 'custom', 'simbolo': 'resistor',
+            'corpo': {'largura': 5.0, 'comprimento': 5.0},
+            'pads': [
+                {'numero': 1, 'x': -1.5, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+                {'numero': 2, 'x': 0.0, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+                {'numero': 3, 'x': 1.5, 'y': 0, 'largura': 1.0, 'altura': 1.0},
+            ],
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        try:
+            gerar_symbol(dados, alvo)
+            raised = False
+        except Exception:
+            raised = True
+        assert raised, "gerar_symbol engoliu o erro em vez de propagar"
+        assert not os.path.exists(alvo), \
+            "arquivo de símbolo torto não deveria ter sido gravado"
+    teste("gerar_symbol propaga erro (regressão do except engolidor)",
+          t_gerar_symbol_propaga_erro)
+
+    def t_nina_simbolo_71():
+        """NINA (custom + grupos_pads, 71 pads) gera símbolo com 71 pinos.
+
+        Antes estourava KeyError 'pinos' em silêncio: nenhuma peça derivada de
+        datasheet tinha símbolo.
+        """
+        _, sym = _gerar_par('NINA_B406')
+        conteudo = open(sym, encoding='utf-8').read()
+        n = len(re.findall(r'\(number "', conteudo))
+        assert n == 71, f"NINA deveria ter 71 pinos no símbolo, tem {n}"
+    teste("NINA custom+grupos_pads gera símbolo 71/71", t_nina_simbolo_71)
+
+    def t_silk_intervalo_e_partes():
+        """As primitivas de recorte de silk fazem a geometria certa."""
+        from footprint_helpers import _intervalo_dentro, _partes_livres
+        # segmento horizontal em y=0, de x=-2 a x=2, cruzando a caixa [-1,1]
+        iv = _intervalo_dentro((-2.0, 0.0), (2.0, 0.0), (-1.0, -1.0, 1.0, 1.0))
+        assert iv is not None and abs(iv[0] - 0.25) < 1e-9 and abs(iv[1] - 0.75) < 1e-9, iv
+        # segmento que não toca a caixa
+        assert _intervalo_dentro((-2.0, 5.0), (2.0, 5.0),
+                                 (-1.0, -1.0, 1.0, 1.0)) is None
+        # subtração: cobre o meio → sobram as duas pontas
+        livres = _partes_livres([(0.25, 0.75)])
+        assert livres == [(0.0, 0.25), (0.75, 1.0)], livres
+        # cobre tudo → nada sobra
+        assert _partes_livres([(0.0, 1.0)]) == []
+    teste("silk: interseção e subtração de intervalos", t_silk_intervalo_e_partes)
+
+    def t_silk_nao_sobre_pad():
+        """Nenhum segmento de F.SilkS pode cruzar cobre exposto no arquivo final.
+
+        Regressão: 15 dos 41 presets saíam com silk sobre os pads (DIP com a
+        linha vertical passando por dentro da coluna inteira). O KiCad acusa
+        'silk over pad' no DRC da placa.
+        """
+        from verificador_drc import verificar_drc_arquivo
+        for preset in ('_preset_DIP14', 'NE555_DIP8', '_preset_SOT23_3'):
+            mod, _ = _gerar_par(preset)
+            res = verificar_drc_arquivo(mod)
+            silk = [e for e in res.errors if 'silk' in e.lower()]
+            assert not silk, f"{preset} ainda tem silk sobre pad: {silk}"
+    teste("silk recortado: sem silk sobre pad no arquivo (regressão)",
+          t_silk_nao_sobre_pad)
+
+    def t_silk_preserva_contorno():
+        """Recortar não pode APAGAR o silk todo — o contorno tem que sobrar.
+
+        O DIP tem as bordas superior/inferior longe dos pads: elas continuam
+        inteiras; só os trechos que cruzam pad somem.
+        """
+        mod, _ = _gerar_par('_preset_DIP14')
+        conteudo = open(mod, encoding='utf-8').read()
+        linhas_silk = conteudo.count('(layer F.SilkS)')
+        assert linhas_silk >= 4, \
+            f"silk quase todo apagado ({linhas_silk} linhas) — recorte agressivo demais"
+    teste("silk recortado preserva o contorno do corpo",
+          t_silk_preserva_contorno)
+
+    def t_modelo_3d_orfao():
+        """Verificador de modelo 3D: acusa .step ausente, não gera falso positivo.
+
+        Bug conhecido: footprint referenciando um .step que não existe. Mas
+        caminho com variável não resolvida (${KICAD9_3DMODEL_DIR}) NÃO pode
+        virar 'arquivo não existe' — no CI a variável tipicamente não existe.
+        """
+        from verificador_modelo_3d import verificar_modelo_3d
+        mod, _ = _gerar_par('_preset_DIP14')
+        # o .step é emitido ao lado; com ele presente, ok
+        step = os.path.splitext(mod)[0] + '.step'
+        if not os.path.exists(step):
+            open(step, 'w').close()
+        r = verificar_modelo_3d(mod)
+        assert r.ok, f"com o .step presente deveria passar: {r.ausentes}"
+        # apagando o .step → reprova, aponta 1 ausente
+        os.remove(step)
+        r2 = verificar_modelo_3d(mod)
+        assert not r2.ok and len(r2.ausentes) == 1, \
+            f"deveria acusar 1 modelo ausente: ok={r2.ok} ausentes={r2.ausentes}"
+    teste("modelo 3D órfão: acusa ausência sem falso positivo",
+          t_modelo_3d_orfao)
+
+    def t_quad_smd_numeracao_casa_simbolo():
+        """quad_smd com pinos.numeracao não-contígua: símbolo e footprint usam a
+        MESMA numeração.
+
+        Regressão: o símbolo emitia 1..total ignorando pinos.numeracao, então
+        um footprint com o lado direito começando em 17 nunca casava — e o guard
+        interno recompunha 1..total e não via a diferença.
+        """
+        from conferir_footprint import conferir_simbolo
+        dados = {
+            'nome': 'TESTE_QuadNum', 'padrao': 'quad_smd',
+            'pinos': {'lados': {'esquerdo': 4, 'base': 0, 'direito': 4, 'topo': 0},
+                      'pitch': 1.0,
+                      'tamanho_pad': {'largura': 0.5, 'altura': 0.3},
+                      'numeracao': {'inicio_esquerdo': 1, 'inicio_direito': 17}},
+            'corpo': {'largura': 8.0, 'comprimento': 8.0},
+            'margens': {'courtyard': 0.25, 'silkscreen': 0.12, 'fab_line': 0.10},
+            'kicad': {'referencia': 'U?', 'descricao': 'x', 'tags': 'x'},
+        }
+        mod = os.path.join(saida_dir, 'TESTE_quadnum.kicad_mod')
+        sym = os.path.join(saida_dir, 'TESTE_quadnum.kicad_sym')
+        gerar_footprint_universal(dados, mod)
+        gerar_symbol(dados, sym)
+        r = conferir_simbolo(mod, sym)
+        assert not r['pinos_sem_pad'] and not r['numeracao_incompativel'], \
+            f"símbolo não honrou pinos.numeracao: {r['pinos_sem_pad']}"
+        # e os números são mesmo os não-contíguos, não 1..8
+        from conferir_footprint import ler_pinos
+        assert '17' in ler_pinos(sym), "o símbolo deveria emitir o pino 17"
+    teste("quad_smd: símbolo honra pinos.numeracao (regressão)",
+          t_quad_smd_numeracao_casa_simbolo)
+
+    def t_marcador_pino1_aviso_ativo():
+        """O aviso de marcador de pino 1 apagado tem que disparar de verdade.
+
+        Regressão: draw_pin1_marker não setava _marcador_pino1, então o aviso
+        era código morto — um marcador apagado pelo recorte passava calado.
+        """
+        import logging
+        from KicadModTree import Footprint, Pad
+        from footprint_helpers import draw_pin1_marker, recortar_silk_sobre_pads
+        avisos = []
+
+        class _H(logging.Handler):
+            def emit(self, r):
+                avisos.append(r.getMessage())
+        import footprint_helpers as fh
+        h = _H()
+        fh.log.addHandler(h)
+        fh.log.setLevel(logging.WARNING)
+        try:
+            fp = Footprint('T')
+            fp.append(Pad(number='1', type=Pad.TYPE_SMT, shape=Pad.SHAPE_RECT,
+                          at=[0, 0], size=[3.0, 3.0], layers=['F.Cu', 'F.Mask']))
+            draw_pin1_marker(fp, 0, 0, style='dot', size=0.3)
+            _, removidas, perdidos = recortar_silk_sobre_pads(fp)
+            assert perdidos >= 1, "marcador dentro do pad deveria contar como perdido"
+            assert any('marcador' in a.lower() for a in avisos), \
+                "o aviso de marcador removido não disparou"
+        finally:
+            fh.log.removeHandler(h)
+    teste("recorte de silk avisa quando apaga o marcador de pino 1",
+          t_marcador_pino1_aviso_ativo)
+
+    def t_folga_nominal_nao_falsa_alarma():
+        """Vão de exatamente 0,2 mm não pode virar aviso '< 0.20mm'.
+
+        Regressão: a subtração dava 0.19999999 e disparava um aviso
+        contraditório (mostrava 0.200 e dizia ser menor que 0.20).
+        """
+        from footprint_helpers import pad_clearance_report
+        # dois pads 0.6 de largura, centros a 0.8 → vão nominal exato de 0.2
+        pads = [('1', 0.0, 0.0, 0.6, 0.3), ('2', 0.8, 0.0, 0.6, 0.3)]
+        sobrepostos, curtos = pad_clearance_report(pads, min_clearance=0.2)
+        assert not sobrepostos and not curtos, \
+            f"vão nominal de 0.2mm não deveria alarmar: {curtos}"
+        # um vão real de 0.15 ainda dispara
+        pads2 = [('1', 0.0, 0.0, 0.6, 0.3), ('2', 0.75, 0.0, 0.6, 0.3)]
+        _, curtos2 = pad_clearance_report(pads2, min_clearance=0.2)
+        assert curtos2, "vão real de 0.15mm deveria ser sinalizado"
+    teste("folga nominal de 0.2mm não gera falso aviso (float)",
+          t_folga_nominal_nao_falsa_alarma)
+
+
+# =============================================================================
 # EXECUÇÃO
 # =============================================================================
 if __name__ == '__main__':
@@ -1833,6 +2092,7 @@ if __name__ == '__main__':
     test_grupo18()  # Validação conteúdo KiCad
     test_grupo19()  # Shim edge cases
     test_grupo20()  # pinos.overrides (dict e lista)
+    test_grupo21()  # Símbolo×footprint, silk, verificadores
 
     # ── Relatório Final ──────────────────────────────────────────────────
     print(f"\n{'='*70}")

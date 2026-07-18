@@ -14,6 +14,7 @@
 # =============================================================================
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -37,6 +38,51 @@ def _load_yaml(path):
     import yaml
     with open(path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
+
+def _stdout_limpo(args):
+    """Em --json o stdout carrega só o JSON — prints do core vão para stderr."""
+    if getattr(args, 'json', False):
+        return contextlib.redirect_stdout(sys.stderr)
+    return contextlib.nullcontext()
+
+
+# (chave no dict de resultados, rótulo de --apenas, sufixo do arquivo)
+_ARTEFATOS = [
+    ('kicad_mod', 'footprint', '.kicad_mod'),
+    ('kicad_sym', 'symbol', '.kicad_sym'),
+    ('step', '3d', '.step'),
+]
+
+
+def _artefatos_pedidos(nome, saida, apenas):
+    """Artefatos que esta execução deve produzir, respeitando --apenas."""
+    return [(chave, rotulo, os.path.join(saida, f"{nome}{sufixo}"))
+            for chave, rotulo, sufixo in _ARTEFATOS
+            if not apenas or apenas == rotulo]
+
+
+def _conferir_no_disco(pedidos, resultados, pulados, falhou):
+    """Confirma no disco que cada artefato pedido saiu de fato.
+
+    A ausência de exceção não é prova: o gerador já respondeu "ok": true para
+    um .kicad_sym que nunca chegou a ser escrito.
+    """
+    erros = []
+    for chave, rotulo, caminho_previsto in pedidos:
+        if chave in falhou or chave in pulados:
+            continue
+        if chave not in resultados:
+            erros.append(f"{rotulo}: não foi gerado e o gerador não disse por quê")
+            continue
+        caminho = resultados.get(chave) or caminho_previsto
+        if not os.path.isfile(caminho):
+            erros.append(
+                f"{rotulo}: o gerador respondeu OK, mas o arquivo não existe "
+                f"no disco: {caminho}")
+        elif os.path.getsize(caminho) == 0:
+            erros.append(f"{rotulo}: arquivo gerado está vazio (0 bytes): {caminho}")
+    return erros
+
 
 def _gerar_footprint_dispatch(dados, kicad_path):
     """Seleciona e executa o gerador de footprint correto (sempre v2).
@@ -76,6 +122,9 @@ def cmd_gerar(args):
     apenas = args.apenas
     resultados = {}
     erros = []
+    pulados = {}   # artefato que o gerador declinou por indisponibilidade
+    falhou = set()  # etapa que já registrou erro próprio
+    pedidos = _artefatos_pedidos(nome, saida, apenas)
 
     def _log(msg):
         if not args.json:
@@ -100,13 +149,7 @@ def cmd_gerar(args):
 
     # --- Dry-run: validate + report planned outputs, write nothing ---
     if getattr(args, 'dry_run', False):
-        planned = []
-        if not apenas or apenas == 'footprint':
-            planned.append(os.path.join(saida, f"{nome}.kicad_mod"))
-        if not apenas or apenas == 'symbol':
-            planned.append(os.path.join(saida, f"{nome}.kicad_sym"))
-        if not apenas or apenas == '3d':
-            planned.append(os.path.join(saida, f"{nome}.step"))
+        planned = [caminho for _, _, caminho in pedidos]
         if args.json:
             print(json.dumps({
                 "ok": True,
@@ -125,11 +168,13 @@ def cmd_gerar(args):
     if not apenas or apenas == 'footprint':
         try:
             kicad_path = os.path.join(saida, f"{nome}.kicad_mod")
-            _gerar_footprint_dispatch(dados, kicad_path)
+            with _stdout_limpo(args):
+                _gerar_footprint_dispatch(dados, kicad_path)
             resultados['kicad_mod'] = kicad_path
             _log(f"✅ Footprint: {os.path.basename(kicad_path)}")
         except Exception as e:
             erros.append(f"Footprint: {e}")
+            falhou.add('kicad_mod')
             _log(f"❌ Footprint: {e}")
 
     # --- Símbolo esquemático ---
@@ -137,11 +182,13 @@ def cmd_gerar(args):
         try:
             sym_path = os.path.join(saida, f"{nome}.kicad_sym")
             from gerador_symbol import gerar_symbol
-            gerar_symbol(dados, sym_path)
+            with _stdout_limpo(args):
+                gerar_symbol(dados, sym_path)
             resultados['kicad_sym'] = sym_path
             _log(f"✅ Símbolo: {os.path.basename(sym_path)}")
         except Exception as e:
             erros.append(f"Symbol: {e}")
+            falhou.add('kicad_sym')
             _log(f"❌ Símbolo: {e}")
 
     # --- Modelo 3D (.step) ---
@@ -149,17 +196,28 @@ def cmd_gerar(args):
         try:
             step_path = os.path.join(saida, f"{nome}.step")
             from gerador_3d import gerar_3d_step
-            result = gerar_3d_step(dados, step_path, log_fn=_log)
+            with _stdout_limpo(args):
+                result = gerar_3d_step(dados, step_path, log_fn=_log)
             if result:
                 resultados['step'] = result
                 _log(f"✅ 3D STEP: {os.path.basename(step_path)}")
             else:
-                _log("⚠️  3D: nenhuma geometria gerada")
+                # gerar_3d_step documenta None como falha, não como recusa.
+                erros.append("3D: nenhuma geometria gerada (gerar_3d_step retornou None)")
+                falhou.add('step')
+                _log("❌ 3D: nenhuma geometria gerada")
         except ImportError:
+            pulados['step'] = "cadquery não instalado"
             _log("⚠️  3D: cadquery não instalado — .step não gerado")
         except Exception as e:
             erros.append(f"3D: {e}")
+            falhou.add('step')
             _log(f"❌ 3D: {e}")
+
+    # --- Conferência: o que foi pedido saiu mesmo? (regra 10) ---
+    for e in _conferir_no_disco(pedidos, resultados, pulados, falhou):
+        erros.append(e)
+        _log(f"❌ {e}")
 
     # --- Output ---
     ok = len(erros) == 0
@@ -168,13 +226,16 @@ def cmd_gerar(args):
             "ok": ok,
             "nome": nome,
             "arquivos": resultados,
+            "pulados": pulados,
             "erros": erros,
         }
         print(json.dumps(out, ensure_ascii=False, indent=2))
     else:
         if ok:
             n = len(resultados)
-            print(f"\n✅ {nome}: {n} arquivo(s) gerado(s) em {saida}/")
+            print(f"\n✅ {nome}: {n} de {len(pedidos)} arquivo(s) gerado(s) em {saida}/")
+            for chave, motivo in pulados.items():
+                print(f"  ⚠️  {chave} não gerado: {motivo}")
         else:
             print(f"\n❌ {nome}: {len(erros)} erro(s)")
 
@@ -212,6 +273,32 @@ def cmd_validar(args):
         result["info"].extend(ipc.info)
     except ImportError:
         result["avisos"].append("validador_ipc não disponível")
+
+    # DRC. Com --footprint mede a geometria real do arquivo gerado e confere o
+    # modelo 3D; sem ele, só a estimativa que o YAML permite.
+    try:
+        from verificador_drc import verificar_drc, verificar_drc_arquivo
+        if args.footprint:
+            if not os.path.isfile(args.footprint):
+                result["ok"] = False
+                result["erros"].append(
+                    f"DRC: footprint não encontrado: {args.footprint}")
+                drc = None
+            else:
+                drc = verificar_drc_arquivo(args.footprint, dados=dados)
+        else:
+            drc = verificar_drc(dados)
+            result["info"].append(
+                "DRC: rodou sobre o YAML (estimativa). O veredito de silkscreen "
+                "sobre pad e de modelo 3D exige --footprint <arquivo.kicad_mod>.")
+        if drc is not None:
+            if not drc.ok:
+                result["ok"] = False
+            result["erros"].extend([f"DRC: {e}" for e in drc.errors])
+            result["avisos"].extend([f"DRC: {w}" for w in drc.warnings])
+            result["info"].extend([f"DRC: {i}" for i in drc.info])
+    except ImportError:
+        result["avisos"].append("verificador_drc não disponível")
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -300,12 +387,18 @@ def cmd_batch(args):
 
             arquivos = []
             apenas = args.apenas
+            pedidos = _artefatos_pedidos(nome, saida, apenas)
+            produzidos = {}
+            pulados = {}
+            falhou = set()
 
             # Footprint
             if not apenas or apenas == 'footprint':
                 if not dry:
                     kicad_path = os.path.join(saida, f"{nome}.kicad_mod")
-                    _gerar_footprint_dispatch(dados, kicad_path)
+                    with _stdout_limpo(args):
+                        _gerar_footprint_dispatch(dados, kicad_path)
+                    produzidos['kicad_mod'] = kicad_path
                 arquivos.append('.kicad_mod')
 
             # Symbol
@@ -313,7 +406,9 @@ def cmd_batch(args):
                 if not dry:
                     sym_path = os.path.join(saida, f"{nome}.kicad_sym")
                     from gerador_symbol import gerar_symbol
-                    gerar_symbol(dados, sym_path)
+                    with _stdout_limpo(args):
+                        gerar_symbol(dados, sym_path)
+                    produzidos['kicad_sym'] = sym_path
                 arquivos.append('.kicad_sym')
 
             # 3D
@@ -324,12 +419,25 @@ def cmd_batch(args):
                     try:
                         step_path = os.path.join(saida, f"{nome}.step")
                         from gerador_3d import gerar_3d_step
-                        if gerar_3d_step(dados, step_path, log_fn=lambda m: None):
+                        with _stdout_limpo(args):
+                            r3d = gerar_3d_step(dados, step_path, log_fn=lambda m: None)
+                        if r3d:
+                            produzidos['step'] = r3d
                             arquivos.append('.step')
+                        else:
+                            falhou.add('step')
+                            raise RuntimeError(
+                                "3D: nenhuma geometria gerada (gerar_3d_step retornou None)")
                     except ImportError:
-                        pass
+                        pulados['step'] = "cadquery não instalado"
 
-            resultados.append({"nome": nome, "ok": True, "arquivos": arquivos})
+            faltando = [] if dry else _conferir_no_disco(
+                pedidos, produzidos, pulados, falhou)
+            if faltando:
+                raise RuntimeError('; '.join(faltando))
+
+            resultados.append({"nome": nome, "ok": True, "arquivos": arquivos,
+                               "pulados": pulados})
             ok_count += 1
             if not args.json:
                 verbo = "would write" if dry else "gerado"
@@ -366,13 +474,25 @@ def cmd_batch(args):
 # Subcomando: conferir
 # =============================================================================
 
+def _achar_simbolo_irmao(caminho_footprint):
+    """.kicad_sym de mesmo nome, ao lado do .kicad_mod."""
+    irmao = os.path.splitext(caminho_footprint)[0] + '.kicad_sym'
+    return irmao if os.path.isfile(irmao) else None
+
+
 def cmd_conferir(args):
-    """Confere um .kicad_mod: colisão entre pads e, opcionalmente, gabarito."""
+    """Confere um .kicad_mod: colisão entre pads, gabarito e símbolo."""
     from conferir_footprint import conferir
+
+    simbolo = args.simbolo
+    auto = False
+    if not simbolo and not args.sem_simbolo:
+        simbolo = _achar_simbolo_irmao(args.footprint)
+        auto = simbolo is not None
 
     try:
         ok, rel = conferir(args.footprint, gabarito=args.gabarito,
-                           folga_min=args.folga_min)
+                           folga_min=args.folga_min, simbolo=simbolo)
     except (FileNotFoundError, OSError) as e:
         if args.json:
             print(json.dumps({"ok": False, "erros": [str(e)]},
@@ -382,7 +502,8 @@ def cmd_conferir(args):
         return 1
 
     if args.json:
-        print(json.dumps({"ok": ok, **rel}, ensure_ascii=False, indent=2))
+        print(json.dumps({"ok": ok, "simbolo_auto": auto, **rel},
+                         ensure_ascii=False, indent=2))
         return 0 if ok else 1
 
     print(f"{rel['footprint']}: {rel['pads']} pads")
@@ -421,6 +542,33 @@ def cmd_conferir(args):
                 print(f"       pad {d['pad']}: gabarito={d['gabarito']}  gerado={d['gerado']}")
         else:
             print(f"  ✅ geometria: {g['iguais']}/{g['total_ref']} pads idênticos")
+
+    s = rel.get('simbolo')
+    if s:
+        origem = " (encontrado ao lado do footprint)" if auto else ""
+        print(f"\nvs símbolo ({s['arquivo']}){origem}:")
+        print(f"  pinos: {s['pinos']} símbolo / {s['pads_numerados']} pads "
+              f"numerados | casados: {s['casados']}")
+
+        if s['numeracao_incompativel']:
+            print("  ❌ NENHUM pino casa: símbolo e footprint usam numerações de")
+            print("      universos diferentes. Nenhuma ligação desse componente")
+            print("      chega ao cobre — o par simbolo+footprint é inutilizável.")
+
+        if s['pinos_sem_pad']:
+            print(f"  ❌ pino sem pad: {s['pinos_sem_pad'][:12]}")
+            print("      O netlist dá net a esses pinos e não há cobre para levá-los.")
+            for d in s['detalhes_pinos_sem_pad'][:8]:
+                print(f"       pino {d['numero']} ({d['nome']})")
+        if s['pads_sem_pino']:
+            print(f"  ⚠️  pad sem pino: {s['pads_sem_pino'][:12]}")
+            print("      Cobre que nenhum net alcança (é o caso do EP/aba térmica).")
+            print("      Não reprova: a placa fabrica.")
+        if not s['pinos_sem_pad'] and not s['pads_sem_pino']:
+            print("  ✅ todo pino tem pad e todo pad numerado tem pino")
+    elif not args.sem_simbolo:
+        print("\nsem símbolo conferido: não há .kicad_sym ao lado do footprint")
+        print("  (use --simbolo para apontar um, ou --sem-simbolo para calar isto)")
 
     print()
     print("  OK" if ok else "  FALHOU")
@@ -471,8 +619,11 @@ def main():
     p_gerar.set_defaults(func=cmd_gerar)
 
     # validar
-    p_validar = sub.add_parser('validar', help='Validar YAML (IPC + Schema)')
+    p_validar = sub.add_parser('validar', help='Validar YAML (Schema + IPC + DRC)')
     p_validar.add_argument('yaml', help='Arquivo YAML do componente')
+    p_validar.add_argument('--footprint',
+                           help='.kicad_mod já gerado deste YAML: roda o DRC '
+                                'sobre a geometria real e confere o modelo 3D')
     p_validar.set_defaults(func=cmd_validar)
 
     # padroes
@@ -505,6 +656,12 @@ def main():
                         dest='folga_min',
                         help='Folga mínima entre pads em mm (default 0 = só '
                              'acusa sobreposição real)')
+    p_conf.add_argument('--simbolo',
+                        help='.kicad_sym do mesmo componente, para conferir os '
+                             'números de pino contra os pads. Se omitido, usa o '
+                             '.kicad_sym de mesmo nome ao lado do footprint')
+    p_conf.add_argument('--sem-simbolo', action='store_true', dest='sem_simbolo',
+                        help='Não procurar o .kicad_sym irmão')
     p_conf.set_defaults(func=cmd_conferir)
 
     # schema

@@ -517,12 +517,26 @@ def render_footprint_print(ax, kicad_mod_path, cotas=True, escala=1.0,
         dc.auto_cotas(pads, corpo=corpo)
 
     # ── Auto-scale axes with margin ──────────────────────────────────────────
+    # A folga e o piso de viewport existem porque as cotas têm texto de tamanho
+    # fixo (pontos) e offsets em mm: se uma peça minúscula (0402) for ampliada
+    # até preencher a folha, o texto fica enorme em relação aos gaps entre cotas
+    # e elas se sobrepõem. O piso mostra a peça pequena e centralizada — como um
+    # preview de CAD — mantendo o texto legível e as cotas separadas. Aspecto
+    # igual evita distorcer um pad 1×0,5 diferente em X e Y.
     ax.autoscale()
-    margin = 3.0
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
-    ax.set_xlim(xlim[0] - margin, xlim[1] + margin)
-    ax.set_ylim(ylim[0] - margin, ylim[1] + margin)
+    span = max(xlim[1] - xlim[0], ylim[1] - ylim[0])
+    margin = max(2.0, span * 0.12)
+    cx = (xlim[0] + xlim[1]) / 2
+    cy = (ylim[0] + ylim[1]) / 2
+    MIN_SEMI_SPAN = 7.0
+    semi = max((xlim[1] - xlim[0]) / 2 + margin,
+               (ylim[1] - ylim[0]) / 2 + margin,
+               MIN_SEMI_SPAN)
+    ax.set_xlim(cx - semi, cx + semi)
+    ax.set_ylim(cy - semi, cy + semi)
+    ax.set_aspect('equal', adjustable='box')
 
     ax.set_xlabel('mm', fontsize=7, color='#616161')
     ax.set_ylabel('mm', fontsize=7, color='#616161')

@@ -140,9 +140,9 @@ grupos_pads:
 
 ```bash
 python cli.py --json validar <yaml>
-python cli.py gerar <yaml> -o saida/ --apenas footprint
+python cli.py gerar <yaml> -o saida/        # footprint + símbolo + 3D
 
-# SEMPRE:
+# SEMPRE (acha o .kicad_sym irmão e confere símbolo×footprint junto):
 python cli.py conferir saida/<Nome>.kicad_mod
 
 # se existir footprint oficial do fabricante (use como oráculo!):
@@ -152,6 +152,11 @@ python cli.py conferir saida/<Nome>.kicad_mod --gabarito <oficial.kicad_mod>
 `conferir` compara **geometria** (com a rotação aplicada), não texto, e acusa
 sobreposição. Um deslocamento **igual em todos os pads** ele reporta como
 **offset de origem**, não como N erros — as posições relativas batem.
+
+Gere **os dois artefatos** (não só o footprint): o `conferir` também casa os
+**números de pino do símbolo com os pads** — o KiCad liga pino↔pad pelo número,
+e um símbolo que não casa passa despercebido até o netlist. **Pino sem pad** é
+erro (net sem cobre); **pad sem pino** é aviso (cobre sem net, ex.: `EP`/aba).
 
 **Procure um gabarito antes de gerar**: biblioteca do fabricante (Altium/KiCad),
 EasyEDA/LCSC, ou o Reference Design. Com gabarito o sucesso é **medível**. Sem
@@ -177,5 +182,6 @@ e `CHANGELOG.md`.
 - [ ] Datum fechado nos **dois** eixos, com a mesma sobra — passo 4
 - [ ] YAML em `grupos_pads` (não N pads explícitos, não script externo)
 - [ ] `conferir` rodado: **0 sobreposições**
+- [ ] Símbolo gerado e conferido: **todo pino tem pad** (sem "pino sem pad")
 - [ ] Gabarito procurado; se existe, **100% dos pads idênticos**
 - [ ] Docs atualizadas junto

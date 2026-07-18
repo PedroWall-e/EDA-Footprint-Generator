@@ -772,6 +772,21 @@ pin_types:
 # tipo: ci_dip
 # # simbolo: omitido → 28 pinos → auto-detecta "ci" (2 lados) ✓
 # ...
+#
+# ─── REGRA: o NÚMERO do pino do símbolo É o número do pad ────────────────
+#
+# O KiCad casa pino↔pad pelo NÚMERO. O número de cada pino do símbolo é
+# derivado dos pads do footprint (de "pinos.total", ou de "pads:"/"grupos_pads:"
+# nas peças custom) — nunca de uma contagem paralela. O NOME do pino vem de
+# "pin_names"; para transistores/MOSFETs a ordem dos papéis vem de
+# "pinos.pinagem" (ex.: "BEC", "GDS"), não de uma ordem fixa.
+#
+# Escolha "simbolo:" pela PINAGEM real, não pelo desenho: um SOT-23 NPN é
+# "transistor" + pinagem "BEC" — pôr "mosfet_n" faria o símbolo emitir G/D/S
+# sobre pads numerados 1/2/3 e ele nunca casaria com o footprint.
+#
+# O "cli.py conferir" checa esse casamento: "pino sem pad" é ERRO (net sem
+# cobre), "pad sem pino" é aviso (cobre sem net, ex.: pad térmico EP, aba).
 
 
 # ─────────────────────────────────────────────────────────────────────────────

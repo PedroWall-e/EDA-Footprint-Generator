@@ -12,12 +12,21 @@
 # sizeX/sizeY de um não girado e ocupa cobre TRANSPOSTO. Comparar (x,y,w,h)
 # sem olhar a rotação dá falso positivo — foi exatamente o que aconteceu.
 #
-# Não depende do pcbnew: lê o .kicad_mod pelo sexpr_parser.
+# Confere também SÍMBOLO x FOOTPRINT: o mesmo YAML gera .kicad_mod e .kicad_sym,
+# e o KiCad casa pino<->pad PELO NÚMERO. Divergindo, o erro só aparece lá na
+# frente, no netlist, longe daqui. Compara só os NÚMEROS: posição do pino no
+# esquemático e posição do pad no cobre não têm relação nenhuma entre si.
+#
+# Não depende do pcbnew: lê .kicad_mod e .kicad_sym pelo sexpr_parser.
 # =============================================================================
 
 import os
 
 from sexpr_parser import parse_sexpr, find_all, find_one, get_at, get_size
+
+# Pad sem número ('') ou sem token de número ('?'): furo mecânico NPTH e
+# sub-pad de exposed pad. Não têm pino por construção — nunca são erro.
+_SEM_NUMERO = ('', '?')
 
 
 def ler_pads(caminho):
@@ -42,10 +51,41 @@ def ler_pads(caminho):
     return pads
 
 
+def ler_pinos(caminho):
+    """Lê os pinos de um .kicad_sym → {numero: nome}.
+
+    Varre o arquivo inteiro: as unidades do símbolo ('_0_1' gráfica, '_1_1' com
+    os pinos) são sub-símbolos aninhados, e os pinos vivem só na segunda.
+
+    O número vem COM aspas no .kicad_sym ((number "1" ...)) e SEM aspas no
+    .kicad_mod ((pad 1 ...)); o parser tira as aspas, então os dois chegam aqui
+    como str e comparam direto.
+    """
+    if not os.path.isfile(caminho):
+        raise FileNotFoundError(f"símbolo não encontrado: {caminho}")
+    with open(caminho, 'r', encoding='utf-8') as f:
+        sexpr = parse_sexpr(f.read())
+
+    pinos = {}
+    for pin in find_all(sexpr, 'pin'):
+        numero = find_one(pin, 'number')
+        nome = find_one(pin, 'name')
+        chave = str(numero[1]) if numero and len(numero) > 1 else '?'
+        pinos[chave] = str(nome[1]) if nome and len(nome) > 1 else ''
+    return pinos
+
+
 def nome_footprint(caminho):
     with open(caminho, 'r', encoding='utf-8') as f:
         sexpr = parse_sexpr(f.read())
     return str(sexpr[1]) if len(sexpr) > 1 else os.path.basename(caminho)
+
+
+def nome_simbolo(caminho):
+    with open(caminho, 'r', encoding='utf-8') as f:
+        sexpr = parse_sexpr(f.read())
+    sym = find_one(sexpr, 'symbol')
+    return str(sym[1]) if sym and len(sym) > 1 else os.path.basename(caminho)
 
 
 def colisoes(pads, folga_min=0.0):
@@ -103,12 +143,59 @@ def comparar(pads_meu, pads_ref):
     }
 
 
+def conferir_simbolo(caminho_mod, caminho_sym):
+    """Confere os números de pino do símbolo contra os pads do footprint.
+
+    As duas direções da divergência NÃO são o mesmo erro:
+
+    - pino sem pad: o netlist atribui um net ao pino e não existe cobre para
+      levá-lo. A ligação some calada. É ERRO e derruba o veredito.
+    - pad sem pino: existe cobre que nenhum net alcança. É o pad térmico EP dos
+      QFN e a aba do SOT223, que legitimamente não têm pino. Fica em AVISO.
+
+    Classifica por DIREÇÃO, não por nome: uma lista de nomes conhecidos ('EP',
+    'PAD', 'TAB') engoliria calada um pad numerado que o símbolo esqueceu.
+    """
+    pads = ler_pads(caminho_mod)
+    pinos = ler_pinos(caminho_sym)
+
+    nums_pad = {n for n in pads if n not in _SEM_NUMERO}
+    nums_pin = {n for n in pinos if n not in _SEM_NUMERO}
+
+    pinos_sem_pad = sorted(nums_pin - nums_pad, key=_ordem)
+    pads_sem_pino = sorted(nums_pad - nums_pin, key=_ordem)
+    casados = sorted(nums_pad & nums_pin, key=_ordem)
+
+    return {
+        'simbolo': nome_simbolo(caminho_sym),
+        'arquivo': os.path.basename(caminho_sym),
+        'pinos': len(nums_pin),
+        'pads_numerados': len(nums_pad),
+        'casados': len(casados),
+        'pinos_sem_pad': pinos_sem_pad,
+        'pads_sem_pino': pads_sem_pino,
+        # Nada casou: as duas numerações são de universos diferentes (símbolo
+        # B/E/C x footprint 1/2/3). Reportar "3 erros + 3 avisos" esconderia
+        # que nenhum pino desse componente vai casar, nunca.
+        'numeracao_incompativel': bool(nums_pad and nums_pin and not casados),
+        # ler_pads indexa por número, então os sem número colapsam numa chave
+        # só: dá para saber que existem, não quantos são.
+        'pads_sem_numero': any(n in _SEM_NUMERO for n in pads),
+        'detalhes_pinos_sem_pad': [{'numero': n, 'nome': pinos[n]}
+                                   for n in pinos_sem_pad][:20],
+    }
+
+
 def _ordem(n):
     return (0, int(n)) if str(n).isdigit() else (1, str(n))
 
 
-def conferir(caminho, gabarito=None, folga_min=0.0):
-    """Confere um footprint. Retorna (ok, relatorio)."""
+def conferir(caminho, gabarito=None, folga_min=0.0, simbolo=None):
+    """Confere um footprint. Retorna (ok, relatorio).
+
+    'simbolo' é o .kicad_sym gerado do mesmo YAML; sem ele a conferência
+    cruzada não roda e o veredito é o de sempre.
+    """
     pads = ler_pads(caminho)
     rel = {
         'footprint': nome_footprint(caminho),
@@ -127,5 +214,11 @@ def conferir(caminho, gabarito=None, folga_min=0.0):
         ok = ok and not cmp_['faltando'] and not cmp_['sobrando'] \
             and not cmp_['tamanhos_diferentes'] \
             and (cmp_['divergentes'] == 0 or cmp_['offset_de_origem'] is not None)
+
+    if simbolo:
+        sym = conferir_simbolo(caminho, simbolo)
+        rel['simbolo'] = sym
+        # Só pino sem pad derruba o veredito: pad sem pino é aviso (EP/aba).
+        ok = ok and not sym['pinos_sem_pad']
 
     return ok, rel

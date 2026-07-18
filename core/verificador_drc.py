@@ -18,6 +18,7 @@ Regras implementadas:
 
 import logging
 import math
+import re
 from dataclasses import dataclass, field
 
 log = logging.getLogger(__name__)
@@ -264,9 +265,21 @@ def _check_solder_mask(dados, result):
 # =============================================================================
 
 def _check_pad_silk_clearance(dados, result):
-    """Verifica se silkscreen não sobrepõe pads (>= 0.1mm)."""
-    silk_margin = _to_float(_get(dados, 'margens', 'silkscreen'))
-    if silk_margin is None:
+    """Estima a folga pad-silkscreen a partir do YAML.
+
+    Estimativa, não veredito: o YAML não diz QUAIS linhas de silk o padrão
+    desenha. Medido no arquivo gerado, `ci_dip` desenha o retângulo fechado
+    (as linhas verticais em ±largura/2 cruzam os pads), enquanto `dual_smd`
+    desenha só as linhas de topo e base — ali a linha vertical que esta regra
+    imagina não existe. Por isso o achado sai como AVISO e a prova fica com
+    `verificar_drc_arquivo()`, que lê a geometria real.
+
+    `margens.silkscreen` é a ESPESSURA da linha (sai como `(width ...)` no
+    .kicad_mod), não um recuo do corpo: a linha é desenhada em ±largura/2 e se
+    espalha meia espessura para cada lado.
+    """
+    silk_width = _to_float(_get(dados, 'margens', 'silkscreen'))
+    if silk_width is None:
         return
 
     corpo = dados.get('corpo', {})
@@ -283,17 +296,28 @@ def _check_pad_silk_clearance(dados, result):
     if pad_w is None:
         return
 
-    # Borda interna do pad
     pad_inner_edge = afastamento / 2 - pad_w / 2
-    # Borda do silkscreen (desenhada com margem do corpo)
-    silk_edge = body_w / 2 + silk_margin
+    pad_outer_edge = afastamento / 2 + pad_w / 2
+    silk_edge = body_w / 2 + silk_width / 2
+
+    # A linha vertical do silk só toca o pad se cair DENTRO do vão do pad.
+    # Se ela passa por fora (silk_edge >= pad_outer_edge), os pads estão
+    # inteiramente dentro do corpo — caso do box header, onde a subtração
+    # ingênua acusava sobreposição inexistente.
+    if silk_edge >= pad_outer_edge:
+        result.add_info(
+            f'Silk fora do vão dos pads (silk={silk_edge:.3f}mm >= '
+            f'borda externa do pad={pad_outer_edge:.3f}mm) — sem cruzamento')
+        return
 
     clearance = pad_inner_edge - silk_edge
     if clearance < 0:
-        result.add_error(
-            f'Silkscreen sobrepõe pads! Borda silk={silk_edge:.3f}mm, '
-            f'borda interna pad={pad_inner_edge:.3f}mm. '
-            f'Sobreposição de {abs(clearance):.3f}mm.')
+        result.add_warning(
+            f'Provável silkscreen sobre pads: linha de silk em '
+            f'{silk_edge:.3f}mm cai dentro do pad (borda interna '
+            f'{pad_inner_edge:.3f}mm, externa {pad_outer_edge:.3f}mm) — '
+            f'sobreposição de {abs(clearance):.3f}mm se o padrão desenhar o '
+            f'retângulo fechado. Confirme com verificar_drc_arquivo().')
     elif clearance < MIN_PAD_SILK_CLEARANCE_MM:
         result.add_warning(
             f'Clearance pad-silkscreen ({clearance:.3f}mm) < '
@@ -521,5 +545,144 @@ def verificar_drc(dados: dict, rules: dict = None) -> DRCResult:
         log.error(
             f'DRC FALHOU para "{nome}" ({tipo}): '
             f'{len(result.errors)} erros, {len(result.warnings)} avisos')
+
+    return result
+
+
+# =============================================================================
+# DRC sobre o arquivo gerado — geometria real
+# =============================================================================
+
+_RE_FP_LINE = re.compile(
+    r'\(fp_line\s+\(start\s+(-?[\d.]+)\s+(-?[\d.]+)\)\s+'
+    r'\(end\s+(-?[\d.]+)\s+(-?[\d.]+)\)\s+\(layer\s+"?F\.SilkS"?\)')
+_RE_PAD = re.compile(
+    r'\(pad\s+("([^"]*)"|(\S+))\s+\S+\s+\S+\s+\(at\s+(-?[\d.]+)\s+(-?[\d.]+)'
+    r'(?:\s+-?[\d.]+)?\)\s+\(size\s+(-?[\d.]+)\s+(-?[\d.]+)\)')
+
+
+def _parse_silk_e_pads(conteudo):
+    """Lê as linhas de F.SilkS e os pads do .kicad_mod já serializado."""
+    silk = [tuple(map(float, m.groups())) for m in _RE_FP_LINE.finditer(conteudo)]
+    pads = []
+    for m in _RE_PAD.finditer(conteudo):
+        numero = m.group(2) if m.group(2) is not None else m.group(3)
+        pads.append((numero, float(m.group(4)), float(m.group(5)),
+                     float(m.group(6)), float(m.group(7))))
+    return silk, pads
+
+
+def _sobreposicao_segmento_pad(x1, y1, x2, y2, px, py, pw, ph):
+    """Comprimento do trecho do segmento que cai dentro do retângulo do pad.
+
+    Só trata segmentos eixo-alinhados — é o que os padrões desenham. Segmento
+    diagonal (chanfro do pino 1) retorna None em vez de virar falso negativo
+    silencioso disfarçado de zero.
+    """
+    rx1, rx2 = px - pw / 2, px + pw / 2
+    ry1, ry2 = py - ph / 2, py + ph / 2
+    if abs(y1 - y2) < 1e-9:
+        if not (ry1 < y1 < ry2):
+            return 0.0
+        return max(0.0, min(max(x1, x2), rx2) - max(min(x1, x2), rx1))
+    if abs(x1 - x2) < 1e-9:
+        if not (rx1 < x1 < rx2):
+            return 0.0
+        return max(0.0, min(max(y1, y2), ry2) - max(min(y1, y2), ry1))
+    return None
+
+
+def verificar_drc_arquivo(caminho_kicad_mod, dados=None, rules=None):
+    """Executa o DRC sobre o footprint JÁ GERADO, medindo a geometria real.
+
+    Diferente de `verificar_drc(dados)`, que estima pelo YAML, aqui as
+    coordenadas são lidas do .kicad_mod. É a única forma de afirmar que o
+    silkscreen cruza um pad: o YAML não diz quais linhas o padrão desenha.
+
+    Args:
+        caminho_kicad_mod: caminho do .kicad_mod gerado.
+        dados: dict do YAML (opcional). Se passado, as regras de
+               `verificar_drc()` também rodam, exceto a estimativa
+               pad_silk_clearance — aqui ela é medida de verdade.
+        rules: mesmo dict de `verificar_drc()`.
+
+    Returns:
+        DRCResult. `.ok` False se houver silk sobre pad, pads sobrepostos ou
+        modelo 3D comprovadamente ausente.
+    """
+    result = DRCResult()
+
+    try:
+        with open(caminho_kicad_mod, 'r', encoding='utf-8') as f:
+            conteudo = f.read()
+    except OSError as e:
+        result.add_error(f'Nao foi possivel ler o footprint gerado: {e}')
+        return result
+
+    if dados is not None:
+        regras_yaml = dict(rules or {})
+        regras_yaml['pad_silk_clearance'] = False
+        parcial = verificar_drc(dados, rules=regras_yaml)
+        result.errors.extend(parcial.errors)
+        result.warnings.extend(parcial.warnings)
+        result.info.extend(parcial.info)
+        if not parcial.ok:
+            result.ok = False
+
+    silk, pads = _parse_silk_e_pads(conteudo)
+
+    # Silk sobre pad — geometria real
+    cruzamentos = {}
+    for (x1, y1, x2, y2) in silk:
+        for (n, px, py, pw, ph) in pads:
+            ov = _sobreposicao_segmento_pad(x1, y1, x2, y2, px, py, pw, ph)
+            if ov:
+                cruzamentos[n] = max(cruzamentos.get(n, 0.0), ov)
+    if cruzamentos:
+        det = ', '.join(f'{n} ({v:.2f}mm)'
+                        for n, v in sorted(cruzamentos.items())[:6])
+        mais = (f' e mais {len(cruzamentos) - 6}'
+                if len(cruzamentos) > 6 else '')
+        result.add_error(
+            f'Silkscreen desenhado sobre {len(cruzamentos)} pad(s): '
+            f'{det}{mais}. O KiCad acusa isso no DRC da placa; recue ou '
+            f'recorte o silk.')
+    elif silk and pads:
+        result.add_info(
+            f'Silkscreen nao cruza pads ({len(silk)} linhas, '
+            f'{len(pads)} pads)')
+
+    # Pads sobrepostos — geometria real
+    try:
+        from footprint_helpers import pad_clearance_report
+    except ImportError:
+        from core.footprint_helpers import pad_clearance_report
+    sobrepostos, curtos = pad_clearance_report(pads)
+    for a, b, gap in sobrepostos:
+        result.add_error(
+            f'Pads {a} e {b} se sobrepoem ({-gap:.3f}mm) — cobre em curto')
+    for a, b, gap in curtos:
+        result.add_warning(
+            f'Folga de {gap:.3f}mm entre os pads {a} e {b} (< 0.2mm)')
+
+    # Modelo 3D órfão
+    try:
+        from verificador_modelo_3d import verificar_modelo_3d
+    except ImportError:
+        from core.verificador_modelo_3d import verificar_modelo_3d
+    r3d = verificar_modelo_3d(caminho_kicad_mod, dados)
+    for ref in r3d.ausentes:
+        result.add_error(
+            f'Modelo 3D referenciado nao existe: "{ref["caminho_bruto"]}" '
+            f'-> {ref["caminho_resolvido"]}')
+    for ref in r3d.nao_verificaveis:
+        vs = ', '.join(ref['variaveis_nao_resolvidas'])
+        result.add_info(
+            f'Modelo 3D nao verificavel (variavel ${{{vs}}} nao definida): '
+            f'{ref["caminho_bruto"]}')
+    for ref in r3d.resolvidos:
+        result.add_info(f'Modelo 3D existe: {ref["caminho_resolvido"]}')
+    if not r3d.referencias:
+        result.add_info('Footprint nao referencia modelo 3D')
 
     return result

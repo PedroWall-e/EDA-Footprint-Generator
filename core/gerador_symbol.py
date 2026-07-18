@@ -17,6 +17,7 @@
 # =============================================================================
 
 import os
+import re
 
 
 # ---------------------------------------------------------------------------
@@ -166,20 +167,35 @@ def _val(d): return d.get("kicad", {}).get("valor", d.get("nome", ""))
 def _desc(d): return d.get("kicad", {}).get("descricao", "")
 
 
-def _pn_get(pn: dict, num: int, default: str = None) -> str:
-    """Busca nome do pino tentando chave int e str.
+def _chave_pino(d: dict, num, default):
+    """Busca em `d` a chave `num` como str e como int.
 
     O YAML parser interpreta '1: GND' como chave int(1), mas
-    '"1": GND' como chave str("1"). Esta função aceita ambos.
+    '"1": GND' como chave str("1"). Números de pad também chegam aqui como
+    str ('EP' nem é numérico), então as duas formas têm de ser tentadas.
     """
+    if not isinstance(d, dict):
+        return default
+    for k in (num, str(num)):
+        if k in d:
+            return d[k]
+    try:
+        k = int(num)
+    except (TypeError, ValueError):
+        return default
+    return d.get(k, default)
+
+
+def _pn_get(pn: dict, num, default: str = None) -> str:
+    """Busca nome do pino tentando chave int e str."""
     if default is None:
         default = f"Pin_{num}"
-    return pn.get(str(num), pn.get(num, default))
+    return _chave_pino(pn, num, default)
 
 
-def _pt_get(pt: dict, num: int, default: str = "bidirectional") -> str:
+def _pt_get(pt: dict, num, default: str = "bidirectional") -> str:
     """Busca tipo elétrico do pino tentando chave int e str."""
-    return pt.get(str(num), pt.get(num, default))
+    return _chave_pino(pt, num, default)
 
 
 def _max_pin_name_len(pn: dict, pin_numbers: list) -> float:
@@ -197,6 +213,103 @@ def _max_pin_name_len(pn: dict, pin_numbers: list) -> float:
         clean = name.replace('~{', '').replace('}', '')
         max_len = max(max_len, len(clean))
     return max_len * FONT_SZ * 0.75
+
+
+# ---------------------------------------------------------------------------
+# Pads reais do footprint — a fonte de verdade dos números de pino
+#
+# O KiCad casa pino<->pad PELO NÚMERO. Se o símbolo numerar por conta própria,
+# os dois artefatos divergem e a placa nunca liga. Por isso tudo aqui deriva
+# dos mesmos dados que o gerador_footprint_v2 usa.
+# ---------------------------------------------------------------------------
+
+def _total_pinos(dados: dict) -> int:
+    return int(dados.get('pinos', {}).get('total', 0) or 0)
+
+
+def _pads_do_footprint(dados: dict):
+    """Pads que o footprint vai criar, para `padrao: custom`. None nos demais.
+
+    Chama a MESMA `expandir_grupos_pads` do gerador_footprint_v2: um preset que
+    descreve a peça por `grupos_pads` (NINA-B406) não tem seção `pinos`, e
+    reimplementar a expansão aqui deixaria os dois artefatos divergirem em
+    silêncio na primeira mudança de um dos lados.
+    """
+    if (dados.get('padrao') or '') != 'custom':
+        return None
+    try:
+        from core.gerador_footprint_v2 import expandir_grupos_pads
+    except ImportError:
+        from gerador_footprint_v2 import expandir_grupos_pads
+    return list(dados.get('pads') or []) + expandir_grupos_pads(dados)
+
+
+def _numeros_quad_smd(dados: dict):
+    """Números de pad do quad_smd, da MESMA fonte que o footprint usa."""
+    try:
+        from core.gerador_footprint_v2 import numeros_quad_smd
+    except ImportError:
+        from gerador_footprint_v2 import numeros_quad_smd
+    return [str(n) for n in numeros_quad_smd(dados)]
+
+
+def _numeros_pinos(dados: dict, total: int) -> list:
+    """Números dos pinos na ordem de emissão: os dos pads reais quando dá para
+    derivá-los; senão 1..total."""
+    pads = _pads_do_footprint(dados)
+    if pads:
+        return [str(p.get('numero', i + 1)) for i, p in enumerate(pads)]
+    if (dados.get('padrao') or '') == 'quad_smd':
+        return _numeros_quad_smd(dados)
+    return [str(i + 1) for i in range(total)]
+
+
+def _numeros_pads_esperados(dados: dict):
+    """Conjunto de números de pad que o footprint emite. None = indeterminável.
+
+    BGA devolve None: lá o número do pad é o rótulo da grade (A1, B2...) e quem
+    o deriva é `_sym_bga`, com as mesmas regras do gerador de footprint.
+    """
+    if (dados.get('padrao') or '') == 'bga':
+        return None
+    pads = _pads_do_footprint(dados)
+    if pads:
+        return {str(p.get('numero', i + 1)) for i, p in enumerate(pads)}
+    if (dados.get('padrao') or '') == 'quad_smd':
+        nums = set(_numeros_quad_smd(dados))
+        if dados.get('pinos', {}).get('thermal_pad'):
+            nums.add('EP')
+        return nums or None
+    total = _total_pinos(dados)
+    if total <= 0:
+        return None
+    nums = {str(i + 1) for i in range(total)}
+    if dados.get('pinos', {}).get('thermal_pad'):
+        nums.add('EP')   # add_thermal_pad() numera o pad exposto assim
+    return nums
+
+
+def _pinos_extras(dados: dict, ja_usados: set, x: float, y0: float,
+                  angulo: int = 180, passo: float = -2.54) -> list:
+    """Pinos para os pads reais que o desenho fixo do símbolo não cobre.
+
+    Um símbolo de forma fixa (capacitor, antena, regulador) tem 1..3 pinos, mas
+    o encapsulamento real pode ter mais pads: aba térmica, pads de GND, pads de
+    fixação. Pad sem pino correspondente fica sem net no KiCad, sem aviso — daí
+    todo pad real virar pino. Ficam soltos de propósito: ligá-los ao desenho
+    afirmaria uma conexão elétrica que o YAML não declara.
+    """
+    pn = dados.get('pin_names', {})
+    pt = dados.get('pin_types', {})
+    itens, y = [], y0
+    for num in _numeros_pinos(dados, _total_pinos(dados)):
+        if num in ja_usados:
+            continue
+        itens.append(_pin(_pt_get(pt, num, 'passive'), "line",
+                          x, y, angulo, PIN_LEN,
+                          _pn_get(pn, num), num))
+        y += passo
+    return itens
 
 
 # ===========================================================================
@@ -269,6 +382,7 @@ def _sym_led_pth(dados: dict) -> str:
 def _sym_capacitor_pth(dados: dict) -> str:
     """Símbolo de capacitor eletrolítico polarizado."""
     nome = dados["nome"]
+    pn   = dados.get("pin_names", {})
     body = [
         # Placa positiva (linha vertical)
         _poly([(-0.508, -1.778), (-0.508, 1.778)]),
@@ -279,14 +393,17 @@ def _sym_capacitor_pth(dados: dict) -> str:
         _poly([(-2.540, 1.016), (-1.524, 1.016)]),   # traço horizontal do +
     ]
     pins = [
-        _pin("passive", "line", -2.54, 0, 0,   2.032, "+", "1"),
-        _pin("passive", "line",  2.54, 0, 180, 2.032, "-", "2"),
+        _pin("passive", "line", -2.54, 0, 0,   2.032, _pn_get(pn, 1, "+"), "1"),
+        _pin("passive", "line",  2.54, 0, 180, 2.032, _pn_get(pn, 2, "-"), "2"),
     ]
+    extras = _pinos_extras(dados, {"1", "2"}, 2.54, -2.54)
+    pins += extras
+    y_val = -2.54 - 2.54 * len(extras)
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
                  datasheet=dados.get('datasheet_url', '~'),
                  descricao=_desc(dados),
-                 ref_at=(0, 2.54), val_at=(0, -2.54))
+                 ref_at=(0, 2.54), val_at=(0, y_val))
 
 
 def _sym_transistor_to92(dados: dict) -> str:
@@ -350,14 +467,17 @@ def _sym_crystal_hc49(dados: dict) -> str:
 def _sym_conector_pth(dados: dict) -> str:
     """Símbolo de conector: retângulo com todos os pinos na esquerda."""
     nome  = dados["nome"]
-    total = int(dados["pinos"]["total"])
     pn    = dados.get("pin_names", {})   # {"1":"VCC","2":"GND",...} — opcional
+    nums  = _numeros_pinos(dados, _total_pinos(dados))
+    total = len(nums)
+    if total <= 0:
+        raise ValueError(f"'{nome}': conector sem pinos — declare 'pinos.total' "
+                         f"(ou 'pads'/'grupos_pads' em padrao: custom).")
 
     body_w_fixed = 5.08
 
     # --- Calcular largura dinâmica baseada nos nomes dos pinos ---
-    all_pins = list(range(1, total + 1))
-    name_w = _max_pin_name_len(pn, all_pins)
+    name_w = _max_pin_name_len(pn, nums)
     # Conector tem pinos só na esquerda, nome precisa caber dentro do corpo
     body_w = max(body_w_fixed, name_w + 2.54)
 
@@ -372,7 +492,7 @@ def _sym_conector_pth(dados: dict) -> str:
     pins = [
         _pin("passive", "line",
              x_l - PIN_LEN, _y(i), 0, PIN_LEN,
-             _pn_get(pn, i + 1), str(i + 1))
+             _pn_get(pn, nums[i]), nums[i])
         for i in range(total)
     ]
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
@@ -390,20 +510,23 @@ def _sym_ci_generico(dados: dict) -> str:
     Campo opcional 'pin_names' no YAML: {"1":"VCC","2":"GND",...}
     """
     nome  = dados["nome"]
-    total = int(dados["pinos"]["total"])
+    pn    = dados.get("pin_names", {})
+    pt    = dados.get("pin_types", {})
+    nums  = _numeros_pinos(dados, _total_pinos(dados))
+    total = len(nums)
+    if total <= 0:
+        raise ValueError(f"'{nome}': CI sem pinos — declare 'pinos.total' "
+                         f"(ou 'pads'/'grupos_pads' em padrao: custom).")
+
     # Distribuição assimétrica: lado esquerdo recebe o pino extra se ímpar
     n_esq = (total + 1) // 2
     n_dir = total - n_esq
-    pn    = dados.get("pin_names", {})
-    pt    = dados.get("pin_types", {})
 
     body_w_fixed = 10.16
 
     # --- Calcular largura dinâmica baseada nos nomes dos pinos ---
-    left_pins  = list(range(1, n_esq + 1))
-    right_pins = list(range(n_esq + 1, total + 1))
-    name_w_left  = _max_pin_name_len(pn, left_pins)
-    name_w_right = _max_pin_name_len(pn, right_pins)
+    name_w_left  = _max_pin_name_len(pn, nums[:n_esq])
+    name_w_right = _max_pin_name_len(pn, nums[n_esq:])
     # Largura mínima = nomes de ambos os lados + margem central
     body_w_names = name_w_left + name_w_right + 2.54
     body_w = max(body_w_fixed, body_w_names)
@@ -428,18 +551,16 @@ def _sym_ci_generico(dados: dict) -> str:
 
     pins = []
     for i in range(n_esq):
-        num  = i + 1
-        name = _pn_get(pn, num)
+        num = nums[i]
         pins.append(_pin(_pt_get(pt, num), "line",
                          x_l - PIN_LEN, _y_left(i), 0, PIN_LEN,
-                         name, str(num)))
+                         _pn_get(pn, num), num))
 
     for j in range(n_dir):
-        num  = n_esq + 1 + j
-        name = _pn_get(pn, num)
+        num = nums[n_esq + j]
         pins.append(_pin(_pt_get(pt, num), "line",
                          x_r + PIN_LEN, _y_right(j), 180, PIN_LEN,
-                         name, str(num)))
+                         _pn_get(pn, num), num))
 
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
@@ -459,15 +580,14 @@ def _sym_castellated(dados: dict) -> str:
     pn     = dados.get("pin_names", {})
     pt     = dados.get("pin_types", {})
 
-    lados_cfg = dados.get("pinos", {}).get("lados")
-    if lados_cfg:
-        n_esq  = int(lados_cfg.get("esquerdo", 0))
-        n_base = int(lados_cfg.get("base", 0))
-        n_dir  = int(lados_cfg.get("direito", 0))
-        n_topo = int(lados_cfg.get("topo", 0))
-    else:
-        n_por  = int(dados["pinos"].get("por_lado", 0))
-        n_esq, n_base, n_dir, n_topo = n_por, 0, n_por, 0
+    # Lados e numeração da MESMA fonte que o footprint (gerador_footprint_v2),
+    # senão símbolo e footprint divergem na contagem ou na numeração.
+    try:
+        from core.gerador_footprint_v2 import _lados_quad_smd, numeros_quad_smd
+    except ImportError:
+        from gerador_footprint_v2 import _lados_quad_smd, numeros_quad_smd
+    n_esq, n_base, n_dir, n_topo = _lados_quad_smd(dados)
+    nums_seq = [str(n) for n in numeros_quad_smd(dados)]
 
     total  = n_esq + n_base + n_dir + n_topo
     max_lr = max(n_esq, n_dir, 1)
@@ -478,9 +598,8 @@ def _sym_castellated(dados: dict) -> str:
     # --- Calcular largura dinâmica baseada nos nomes dos pinos ---
     body_w_fixed = max(10.16, max_tb * 2.54 + 5.08) if max_tb else 10.16
     # Estimar nomes mais longos nos lados esquerdo e direito
-    left_pins  = list(range(1, n_esq + 1))
-    right_start = n_esq + n_base + 1
-    right_pins = list(range(right_start, right_start + n_dir))
+    left_pins  = nums_seq[:n_esq]
+    right_pins = nums_seq[n_esq + n_base:n_esq + n_base + n_dir]
     name_w_left  = _max_pin_name_len(pn, left_pins)
     name_w_right = _max_pin_name_len(pn, right_pins)
     body_w_names = name_w_left + name_w_right + 2.54
@@ -497,39 +616,42 @@ def _sym_castellated(dados: dict) -> str:
 
     body = [_rect(x_l, y_t, x_r, y_b, fill="background")]
     pins = []
-    num  = 1
+    k = 0  # índice na sequência de números (mesma ordem de traversal)
 
     # Esquerdo: cima → baixo
     for i in range(n_esq):
-        name = _pn_get(pn, num)
+        num = nums_seq[k]; k += 1
         pins.append(_pin(_pt_get(pt, num), "line",
                          x_l - PIN_LEN, _y_side(n_esq, i), 0, PIN_LEN,
-                         name, str(num)))
-        num += 1
+                         _pn_get(pn, num), num))
 
     # Base: esq → dir
     for i in range(n_base):
-        name = _pn_get(pn, num)
+        num = nums_seq[k]; k += 1
         pins.append(_pin(_pt_get(pt, num), "line",
                          _x_side(n_base, i), y_b - PIN_LEN, 90, PIN_LEN,
-                         name, str(num)))
-        num += 1
+                         _pn_get(pn, num), num))
 
     # Direito: baixo → cima
     for i in reversed(range(n_dir)):
-        name = _pn_get(pn, num)
+        num = nums_seq[k]; k += 1
         pins.append(_pin(_pt_get(pt, num), "line",
                          x_r + PIN_LEN, _y_side(n_dir, i), 180, PIN_LEN,
-                         name, str(num)))
-        num += 1
+                         _pn_get(pn, num), num))
 
     # Topo: dir → esq
     for i in reversed(range(n_topo)):
-        name = _pn_get(pn, num)
+        num = nums_seq[k]; k += 1
         pins.append(_pin(_pt_get(pt, num), "line",
                          _x_side(n_topo, i), y_t + PIN_LEN, 270, PIN_LEN,
-                         name, str(num)))
-        num += 1
+                         _pn_get(pn, num), num))
+
+    # Pad exposto (QFN/DFN): add_thermal_pad() o numera 'EP'. Sem pino de mesmo
+    # número o cobre central fica sem net e o esquemático não tem como aterrá-lo.
+    if dados.get('pinos', {}).get('thermal_pad'):
+        pins.append(_pin(_pt_get(pt, 'EP', 'passive'), "line",
+                         x_r + PIN_LEN, y_b - 2.54, 180, PIN_LEN,
+                         _pn_get(pn, 'EP', 'EP'), 'EP'))
 
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
@@ -675,13 +797,36 @@ def _sym_bga(dados: dict) -> str:
 # Novos geradores — MOSFETs
 # ===========================================================================
 
+def _papeis_mosfet(dados: dict) -> dict:
+    """Casa cada papel do MOSFET (G/D/S) com o NÚMERO do pad que o realiza.
+
+    Quem diz qual pad é o gate é o `pin_names` do YAML — no IRFZ44N (DPAK) o
+    source é o pad 2 e o dreno é o 3, no 2N7002 (SOT-23) é o contrário. Sem ler
+    o YAML, um dos dois sairia com dreno e source trocados.
+
+    Devolve {papel: (numero, nome_exibido)}. Ordem G,D,S nos pads 1,2,3 é só o
+    recurso de quando o YAML não nomeia os pinos.
+    """
+    pn = dados.get("pin_names", {})
+    achados = {}
+    for num in _numeros_pinos(dados, _total_pinos(dados) or 3):
+        papel = str(_pn_get(pn, num, "")).strip().upper()
+        if papel in ("G", "D", "S") and papel not in achados:
+            achados[papel] = (num, papel)
+
+    if set(achados) == {"G", "D", "S"}:
+        return achados
+    return {papel: (str(i + 1), _pn_get(pn, i + 1, papel))
+            for i, papel in enumerate(("G", "D", "S"))}
+
+
 def _sym_mosfet_n(dados: dict) -> str:
     """Símbolo N-Channel MOSFET: gate, drain, source com seta apontando PARA o canal."""
     nome = dados["nome"]
-    pn   = dados.get("pin_names", {})
-    g_num = _pn_get(pn, 1, "G")
-    d_num = _pn_get(pn, 2, "D")
-    s_num = _pn_get(pn, 3, "S")
+    papeis = _papeis_mosfet(dados)
+    g_num, g_nome = papeis["G"]
+    d_num, d_nome = papeis["D"]
+    s_num, s_nome = papeis["S"]
 
     body = [
         _circle(0, 0, 2.54),                             # corpo circular
@@ -709,10 +854,11 @@ def _sym_mosfet_n(dados: dict) -> str:
         _poly([(0, 0), (1.27, 0)]),
     ]
     pins = [
-        _pin("input",   "line", -5.08, 0,     0,   PIN_LEN, "G", str(g_num)),
-        _pin("passive", "line",  1.27,  5.08,  270, PIN_LEN, "D", str(d_num)),
-        _pin("passive", "line",  1.27, -5.08,  90,  PIN_LEN, "S", str(s_num)),
+        _pin("input",   "line", -5.08, 0,     0,   PIN_LEN, g_nome, g_num),
+        _pin("passive", "line",  1.27,  5.08,  270, PIN_LEN, d_nome, d_num),
+        _pin("passive", "line",  1.27, -5.08,  90,  PIN_LEN, s_nome, s_num),
     ]
+    pins += _pinos_extras(dados, {g_num, d_num, s_num}, -5.08, -3.81, angulo=0)
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
                  datasheet=dados.get('datasheet_url', '~'),
@@ -723,10 +869,10 @@ def _sym_mosfet_n(dados: dict) -> str:
 def _sym_mosfet_p(dados: dict) -> str:
     """Símbolo P-Channel MOSFET: seta apontando PARA FORA do canal + círculo no gate."""
     nome = dados["nome"]
-    pn   = dados.get("pin_names", {})
-    g_num = _pn_get(pn, 1, "G")
-    d_num = _pn_get(pn, 2, "D")
-    s_num = _pn_get(pn, 3, "S")
+    papeis = _papeis_mosfet(dados)
+    g_num, g_nome = papeis["G"]
+    d_num, d_nome = papeis["D"]
+    s_num, s_nome = papeis["S"]
 
     body = [
         _circle(0, 0, 2.54),                             # corpo circular
@@ -755,10 +901,11 @@ def _sym_mosfet_p(dados: dict) -> str:
         _poly([(0, 0), (1.27, 0)]),
     ]
     pins = [
-        _pin("input",   "line", -5.08, 0,     0,   PIN_LEN, "G", str(g_num)),
-        _pin("passive", "line",  1.27,  5.08,  270, PIN_LEN, "D", str(d_num)),
-        _pin("passive", "line",  1.27, -5.08,  90,  PIN_LEN, "S", str(s_num)),
+        _pin("input",   "line", -5.08, 0,     0,   PIN_LEN, g_nome, g_num),
+        _pin("passive", "line",  1.27,  5.08,  270, PIN_LEN, d_nome, d_num),
+        _pin("passive", "line",  1.27, -5.08,  90,  PIN_LEN, s_nome, s_num),
     ]
+    pins += _pinos_extras(dados, {g_num, d_num, s_num}, -5.08, -3.81, angulo=0)
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
                  datasheet=dados.get('datasheet_url', '~'),
@@ -797,6 +944,8 @@ def _sym_regulador(dados: dict) -> str:
         _pin("power_in",     "line", 0,              y_b - PIN_LEN, 90,  PIN_LEN, gnd_name, "2"),
         _pin("power_out",    "line", x_r + PIN_LEN,  0,          180,  PIN_LEN, out_name, "3"),
     ]
+    # SOT-223 e afins têm a aba (pad 4) além dos 3 terminais.
+    pins += _pinos_extras(dados, {"1", "2", "3"}, x_r + PIN_LEN, -2.54)
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
                  datasheet=dados.get('datasheet_url', '~'),
@@ -949,8 +1098,12 @@ def _sym_bateria(dados: dict) -> str:
 # ===========================================================================
 
 def _sym_antena(dados: dict) -> str:
-    """Símbolo de antena: V invertido com linha vertical para baixo. 1 pino."""
+    """Símbolo de antena: V invertido com linha vertical para baixo.
+
+    O pino 1 é o alimentador; pads de GND/fixação da peça viram pinos soltos.
+    """
     nome = dados["nome"]
+    pn   = dados.get("pin_names", {})
     body = [
         # Linha vertical (da base ao ponto de encontro)
         _poly([(0, -1.27), (0, 2.54)]),
@@ -958,8 +1111,10 @@ def _sym_antena(dados: dict) -> str:
         _poly([(-1.524, 1.27), (0, 3.81), (1.524, 1.27)]),
     ]
     pins = [
-        _pin("passive", "line", 0, -3.81, 90, PIN_LEN, "ANT", "1"),
+        _pin(_pt_get(dados.get("pin_types", {}), 1, "passive"), "line",
+             0, -3.81, 90, PIN_LEN, _pn_get(pn, 1, "ANT"), "1"),
     ]
+    pins += _pinos_extras(dados, {"1"}, 5.08, -3.81)
     return _wrap(nome, body, pins, _ref(dados), _val(dados),
                  footprint=dados.get('kicad', {}).get('footprint_lib', ''),
                  datasheet=dados.get('datasheet_url', '~'),
@@ -1078,6 +1233,29 @@ def _auto_detect_symbol(padrao: str, total_pinos: int, dados: dict):
         return _sym_castellated   # many pins → 4 sides
 
 
+def _conferir_numeros(dados: dict, sym_content: str, nome: str) -> None:
+    """Confere que os números dos pinos são os números dos pads do footprint.
+
+    O KiCad casa pino<->pad pelo número: pino a mais é pad inexistente, pad sem
+    pino fica sem net. Nos dois casos o par símbolo+footprint não fecha placa, e
+    até aqui nada reclamava. Roda antes de escrever, para não deixar arquivo.
+    """
+    esperados = _numeros_pads_esperados(dados)
+    if esperados is None:
+        return
+    emitidos = set(re.findall(r'\(number "([^"]+)"', sym_content))
+    if emitidos == esperados:
+        return
+    faltam = sorted(esperados - emitidos)
+    sobram = sorted(emitidos - esperados)
+    raise ValueError(
+        f"'{nome}': os números dos pinos do símbolo não batem com os pads do "
+        f"footprint — o KiCad não casaria os dois. "
+        f"Pads sem pino: {faltam or 'nenhum'}. "
+        f"Pinos sem pad: {sobram or 'nenhum'}."
+    )
+
+
 def gerar_symbol(dados: dict, caminho_saida: str) -> None:
     """
     Gera o arquivo .kicad_sym para o componente descrito em 'dados'.
@@ -1096,27 +1274,27 @@ def gerar_symbol(dados: dict, caminho_saida: str) -> None:
     padrao    = dados.get('padrao', '')
     simbolo   = dados.get('simbolo', '')      # NEW: override explícito
     nome      = dados.get('nome', 'Componente')
-    total_pinos = int(dados.get('pinos', {}).get('total', 0))
+    total_pinos = _total_pinos(dados)
 
-    # Componentes com padrao: custom usam "pads:" em vez de "pinos:"
-    # → inferir pinos.total para o gerador de símbolo genérico
-    if not tipo and padrao and 'pinos' not in dados and 'pads' in dados:
-        pads_list = dados['pads']
-        # Criar seção pinos sintética para o gerador de símbolo
-        dados = dict(dados)  # cópia para não alterar o original
-        dados['pinos'] = {'total': len(pads_list)}
-        total_pinos = len(pads_list)
-        # Se não tem pin_names, gerar a partir dos pads
-        if 'pin_names' not in dados:
-            dados['pin_names'] = {
-                str(p.get('numero', i+1)): p.get('nome', f"Pin_{i+1}")
-                for i, p in enumerate(pads_list)
-            }
-        if 'pin_types' not in dados:
-            dados['pin_types'] = {
-                str(p.get('numero', i+1)): p.get('tipo_eletrico', 'passive')
-                for i, p in enumerate(pads_list)
-            }
+    # Componentes com padrao: custom descrevem os pads em "pads:" e/ou
+    # "grupos_pads:", nunca em "pinos:" → derivar dos pads REAIS do footprint.
+    if not tipo and padrao and 'pinos' not in dados:
+        pads_list = _pads_do_footprint(dados)
+        if pads_list:
+            dados = dict(dados)  # cópia para não alterar o original
+            dados['pinos'] = {'total': len(pads_list)}
+            total_pinos = len(pads_list)
+            # Se não tem pin_names, gerar a partir dos pads
+            if 'pin_names' not in dados:
+                dados['pin_names'] = {
+                    str(p.get('numero', i+1)): p.get('nome', f"Pin_{i+1}")
+                    for i, p in enumerate(pads_list)
+                }
+            if 'pin_types' not in dados:
+                dados['pin_types'] = {
+                    str(p.get('numero', i+1)): p.get('tipo_eletrico', 'passive')
+                    for i, p in enumerate(pads_list)
+                }
 
     # ----- Prioridade 1: campo explícito 'simbolo:' -----
     fn = None
@@ -1135,47 +1313,42 @@ def gerar_symbol(dados: dict, caminho_saida: str) -> None:
     metodo = 'simbolo' if (simbolo and _DISPATCH.get(simbolo) is fn) else \
              'tipo' if (tipo and _DISPATCH.get(tipo) is fn) else 'auto-detect'
 
-    try:
-        # ── Preencher campos que os geradores usam via dados ──────────────
-        # Bug #1: Footprint vazio — gerar referência automática
-        kicad_cfg = dados.get('kicad', {})
-        if not kicad_cfg.get('footprint_lib'):
-            # Formato KiCad: "BIBLIOTECA:FOOTPRINT"
-            # Usa nome do componente como lib e footprint (biblioteca individual)
-            lib_name = kicad_cfg.get('biblioteca', nome)
-            dados = dict(dados)  # cópia para não alterar o original
-            dados.setdefault('kicad', {})
-            if not isinstance(dados['kicad'], dict):
-                dados['kicad'] = {}
-            dados['kicad']['footprint_lib'] = f"{lib_name}:{nome}"
+    # ── Preencher campos que os geradores usam via dados ──────────────
+    # Bug #1: Footprint vazio — gerar referência automática
+    kicad_cfg = dados.get('kicad', {})
+    if not kicad_cfg.get('footprint_lib'):
+        # Formato KiCad: "BIBLIOTECA:FOOTPRINT"
+        # Usa nome do componente como lib e footprint (biblioteca individual)
+        lib_name = kicad_cfg.get('biblioteca', nome)
+        dados = dict(dados)  # cópia para não alterar o original
+        dados.setdefault('kicad', {})
+        if not isinstance(dados['kicad'], dict):
+            dados['kicad'] = {}
+        dados['kicad']['footprint_lib'] = f"{lib_name}:{nome}"
 
-        # Bug #3: Datasheet vazio — buscar de múltiplos campos
-        if not dados.get('datasheet_url') or dados.get('datasheet_url') == '~':
-            ds = (kicad_cfg.get('datasheet')
-                  or kicad_cfg.get('datasheet_url')
-                  or kicad_cfg.get('ficha_tecnica')
-                  or dados.get('datasheet')
-                  or dados.get('datasheet_url')
-                  or '~')
-            dados = dict(dados) if not isinstance(dados, dict) else dados
-            dados['datasheet_url'] = ds
+    # Bug #3: Datasheet vazio — buscar de múltiplos campos
+    if not dados.get('datasheet_url') or dados.get('datasheet_url') == '~':
+        ds = (kicad_cfg.get('datasheet')
+              or kicad_cfg.get('datasheet_url')
+              or kicad_cfg.get('ficha_tecnica')
+              or dados.get('datasheet')
+              or dados.get('datasheet_url')
+              or '~')
+        dados = dict(dados) if not isinstance(dados, dict) else dados
+        dados['datasheet_url'] = ds
 
-        sym_content = fn(dados)
-        lib_content = _lib([sym_content])
+    sym_content = fn(dados)
+    _conferir_numeros(dados, sym_content, nome)
+    lib_content = _lib([sym_content])
 
-        os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
-        with open(caminho_saida, 'w', encoding='utf-8') as f:
-            f.write(lib_content)
+    os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
+    with open(caminho_saida, 'w', encoding='utf-8') as f:
+        f.write(lib_content)
 
-        print(f"  [Symbol] Arquivo gerado: {os.path.basename(caminho_saida)}")
-        print(f"  [Symbol] Método: {metodo}  |  Nome: {nome}")
-        if simbolo:
-            print(f"  [Symbol] simbolo: {simbolo}")
-        if tipo:
-            print(f"  [Symbol] tipo: {tipo}")
-        print(f"  [Symbol] Importar no KiCad: Schematic -> Preferences -> Manage Symbol Libraries")
-
-    except Exception as e:
-        print(f"  [Symbol] ERRO ao gerar simbolo: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
+    print(f"  [Symbol] Arquivo gerado: {os.path.basename(caminho_saida)}")
+    print(f"  [Symbol] Método: {metodo}  |  Nome: {nome}")
+    if simbolo:
+        print(f"  [Symbol] simbolo: {simbolo}")
+    if tipo:
+        print(f"  [Symbol] tipo: {tipo}")
+    print(f"  [Symbol] Importar no KiCad: Schematic -> Preferences -> Manage Symbol Libraries")

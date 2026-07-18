@@ -792,6 +792,55 @@ def _gerar_dual_smd(dados, caminho_saida):
 # 4 lados de pads SMD — QFP, QFN, castellated
 # =============================================================================
 
+def _lados_quad_smd(dados):
+    """(n_esq, n_base, n_dir, n_topo) resolvidos de lados/por_lado/total.
+
+    Fonte única da distribuição por lado — o footprint e o símbolo têm de
+    concordar, senão os dois artefatos divergem em silêncio.
+    """
+    lados = _get(dados, 'pinos', 'lados', default=None)
+    if lados:
+        return (int(lados.get('esquerdo', 0)), int(lados.get('base', 0)),
+                int(lados.get('direito', 0)), int(lados.get('topo', 0)))
+    por_lado = _int(dados, 'pinos', 'por_lado', default=0)
+    if por_lado > 0:
+        return (por_lado, por_lado, por_lado, por_lado)
+    total = _int(dados, 'pinos', 'total', default=0)
+    p = total // 4
+    return (p, p, p, p)
+
+
+def numeros_quad_smd(dados):
+    """Números dos pads na ordem de traversal esquerdo→base→direito→topo,
+    honrando `pinos.numeracao`.
+
+    Fonte única da numeração: o footprint e o símbolo derivam daqui, para nunca
+    divergirem (o símbolo emitia 1..total e não casava com um footprint que
+    começasse o lado direito em 17).
+    """
+    n_esq, n_base, n_dir, n_topo = _lados_quad_smd(dados)
+    numeracao = _get(dados, 'pinos', 'numeracao', default=None) or {}
+    inicio_esq = numeracao.get('inicio_esquerdo')
+    inicio_dir = numeracao.get('inicio_direito')
+
+    nums, c = [], 1
+    if n_esq > 0:
+        if inicio_esq is not None:
+            c = int(inicio_esq)
+        for _ in range(n_esq):
+            nums.append(c); c += 1
+    for _ in range(n_base):
+        nums.append(c); c += 1
+    if n_dir > 0:
+        if inicio_dir is not None:
+            c = int(inicio_dir)
+        for _ in range(n_dir):
+            nums.append(c); c += 1
+    for _ in range(n_topo):
+        nums.append(c); c += 1
+    return nums
+
+
 def _gerar_quad_smd(dados, caminho_saida):
     """Gera footprint para CIs SMD com 4 lados (QFP, QFN, castellated).
 
@@ -848,22 +897,8 @@ def _gerar_quad_smd(dados, caminho_saida):
         if pcb_altura == 0:
             pcb_altura = _float(dados, 'corpo', 'comprimento', default=7.0)
 
-    # Número de pinos por lado
-    lados = _get(dados, 'pinos', 'lados', default=None)
-    if lados:
-        n_esq  = int(lados.get('esquerdo', 0))
-        n_base = int(lados.get('base', 0))
-        n_dir  = int(lados.get('direito', 0))
-        n_topo = int(lados.get('topo', 0))
-    else:
-        por_lado = _int(dados, 'pinos', 'por_lado', default=0)
-        if por_lado > 0:
-            n_esq = n_base = n_dir = n_topo = por_lado
-        else:
-            total = _int(dados, 'pinos', 'total', default=0)
-            por_lado = total // 4
-            n_esq = n_base = n_dir = n_topo = por_lado
-
+    # Número de pinos por lado (fonte única, compartilhada com o símbolo)
+    n_esq, n_base, n_dir, n_topo = _lados_quad_smd(dados)
     total = n_esq + n_base + n_dir + n_topo
 
     # --- Validação: `total` declarado tem que bater com a distribuição ---
@@ -906,7 +941,6 @@ def _gerar_quad_smd(dados, caminho_saida):
                    margin=margem_cy)
 
     # --- Calcular posições dos pads ---
-    pad_num = 1
     pads_info = []  # lista de (num, x, y, w, h)
 
     # Overrides de tamanho — aceita as duas formas do schema (dict e lista)
@@ -916,58 +950,52 @@ def _gerar_quad_smd(dados, caminho_saida):
         """Retorna (w, h) para o pad num, considerando overrides."""
         return override_map.get(str(num), (pad_w_def, pad_h_def))
 
-    # `pinos.numeracao` permite fixar onde a numeração de um lado começa, em
-    # vez de seguir a contagem corrida (esquerdo → base → direito → topo).
-    # Útil quando o datasheet numera assim. Sobreposições viram erro logo
+    # Numeração vem da fonte única (honra `pinos.numeracao`), na mesma ordem de
+    # traversal das quatro fileiras abaixo. Sobreposições viram erro logo
     # abaixo — pad duplicado seria netlist errada.
-    numeracao  = _get(dados, 'pinos', 'numeracao', default=None) or {}
-    inicio_esq = numeracao.get('inicio_esquerdo')
-    inicio_dir = numeracao.get('inicio_direito')
+    nums = numeros_quad_smd(dados)
+    k = 0
 
     # Esquerdo: cima → baixo (pads orientados horizontalmente)
     if n_esq > 0:
-        if inicio_esq is not None:
-            pad_num = int(inicio_esq)
         y_start = -(n_esq - 1) * pitch / 2
         for i in range(n_esq):
-            w, h = _pad_size(pad_num)
+            num = nums[k]; k += 1
+            w, h = _pad_size(num)
             px = x_min
             py = y_start + i * pitch
-            pads_info.append((pad_num, px, py, w, h, False))
-            pad_num += 1
+            pads_info.append((num, px, py, w, h, False))
 
     # Base: esquerda → direita (pads orientados verticalmente)
     if n_base > 0:
         x_start = -(n_base - 1) * pitch / 2
         for i in range(n_base):
-            w, h = _pad_size(pad_num)
+            num = nums[k]; k += 1
+            w, h = _pad_size(num)
             px = x_start + i * pitch
             py = y_max
             # Para base/topo, w e h se trocam (pad perpendicular à borda)
-            pads_info.append((pad_num, px, py, h, w, True))
-            pad_num += 1
+            pads_info.append((num, px, py, h, w, True))
 
     # Direito: baixo → cima (pads orientados horizontalmente)
     if n_dir > 0:
-        if inicio_dir is not None:
-            pad_num = int(inicio_dir)
         y_start = -(n_dir - 1) * pitch / 2
         for i in range(n_dir):
-            w, h = _pad_size(pad_num)
+            num = nums[k]; k += 1
+            w, h = _pad_size(num)
             px = x_max
             py = y_start + (n_dir - 1 - i) * pitch
-            pads_info.append((pad_num, px, py, w, h, False))
-            pad_num += 1
+            pads_info.append((num, px, py, w, h, False))
 
     # Topo: direita → esquerda (pads orientados verticalmente)
     if n_topo > 0:
         x_start = -(n_topo - 1) * pitch / 2
         for i in range(n_topo):
-            w, h = _pad_size(pad_num)
+            num = nums[k]; k += 1
+            w, h = _pad_size(num)
             px = x_start + (n_topo - 1 - i) * pitch
             py = y_min
-            pads_info.append((pad_num, px, py, h, w, True))
-            pad_num += 1
+            pads_info.append((num, px, py, h, w, True))
 
     # --- Validação: numeração não pode repetir ---
     # `pinos.numeracao` fixa o início de um lado; se colidir com a contagem
