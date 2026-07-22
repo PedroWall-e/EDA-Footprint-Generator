@@ -2039,6 +2039,39 @@ def test_grupo21():
     teste("recorte de silk reposiciona o marcador de pino 1 (regressão)",
           t_marcador_pino1_reposicionado)
 
+    def t_pinos_na_grade_do_esquematico():
+        """Todo pino de símbolo tem que cair na grade de 50 mil (1,27 mm).
+
+        Regressão: a largura do corpo saía de um cálculo livre (comprimento dos
+        nomes dos pinos) e o X do pino, ±largura/2 ∓ PIN_LEN, caía fora da grade
+        — 15 dos 41 símbolos. No editor de esquemático o fio NÃO engata num pino
+        fora da grade: o usuário desenha uma ligação que parece feita e não está.
+        """
+        import glob
+
+        def _na_grade(v, g=1.27):
+            q = float(v) / g
+            return abs(q - round(q)) < 1e-6
+
+        fora = []
+        for f in sorted(glob.glob(os.path.join(PROJ, 'modulos_config', '*.yaml'))):
+            if '_template' in f:
+                continue
+            dados = yaml.safe_load(open(f, encoding='utf-8'))
+            nome = dados.get('nome', '?')
+            sym = os.path.join(saida_dir, f'{nome}.kicad_sym')
+            try:
+                gerar_symbol(dados, sym)
+            except Exception:
+                continue
+            texto = open(sym, encoding='utf-8').read()
+            ats = re.findall(r'\(pin\b[^\n]*\n\s*\(at\s+([-\d.]+)\s+([-\d.]+)', texto)
+            if any(not (_na_grade(x) and _na_grade(y)) for x, y in ats):
+                fora.append(nome)
+        assert not fora, f"símbolos com pino fora da grade de 1,27mm: {fora}"
+    teste("pinos do símbolo caem na grade de 50 mil (regressão)",
+          t_pinos_na_grade_do_esquematico)
+
     def t_folga_nominal_nao_falsa_alarma():
         """Vão de exatamente 0,2 mm não pode virar aviso '< 0.20mm'.
 

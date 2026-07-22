@@ -198,6 +198,21 @@ def _pt_get(pt: dict, num, default: str = "bidirectional") -> str:
     return _chave_pino(pt, num, default)
 
 
+def _largura_na_grade(w: float, grade: float = 5.08) -> float:
+    """Arredonda a largura do corpo PARA CIMA num múltiplo de `grade`.
+
+    O X do pino é ±largura/2 ∓ PIN_LEN. Quando a largura sai de um cálculo livre
+    (o comprimento dos nomes dos pinos), o pino cai FORA da grade do esquemático
+    e o fio não engata nele — o usuário desenha uma ligação que parece feita e
+    não está. Com a largura em múltiplo de 5.08, a metade vira múltiplo de 2.54 e
+    o pino cai sempre na grade de 100 mil.
+    """
+    passos = int(w / grade)
+    if passos * grade < w - 1e-9:
+        passos += 1
+    return passos * grade
+
+
 def _max_pin_name_len(pn: dict, pin_numbers: list) -> float:
     """Retorna largura estimada (mm) do nome de pino mais longo.
 
@@ -479,7 +494,7 @@ def _sym_conector_pth(dados: dict) -> str:
     # --- Calcular largura dinâmica baseada nos nomes dos pinos ---
     name_w = _max_pin_name_len(pn, nums)
     # Conector tem pinos só na esquerda, nome precisa caber dentro do corpo
-    body_w = max(body_w_fixed, name_w + 2.54)
+    body_w = _largura_na_grade(max(body_w_fixed, name_w + 2.54))
 
     body_h = total * 2.54 + 1.27
     x_l, x_r = -body_w / 2, body_w / 2
@@ -529,7 +544,7 @@ def _sym_ci_generico(dados: dict) -> str:
     name_w_right = _max_pin_name_len(pn, nums[n_esq:])
     # Largura mínima = nomes de ambos os lados + margem central
     body_w_names = name_w_left + name_w_right + 2.54
-    body_w = max(body_w_fixed, body_w_names)
+    body_w = _largura_na_grade(max(body_w_fixed, body_w_names))
 
     max_side = max(n_esq, n_dir, 1)
     body_h = max_side * 2.54 + 1.27
@@ -593,7 +608,9 @@ def _sym_castellated(dados: dict) -> str:
     max_lr = max(n_esq, n_dir, 1)
     max_tb = max(n_topo, n_base, 0)
 
-    body_h = max_lr * 2.54 + 1.27
+    # Os pinos de base/topo saem em ±(body_h/2 + PIN_LEN): a altura tem de ser
+    # múltipla de 2.54 para a metade cair na grade, senão o fio não engata.
+    body_h = _largura_na_grade(max_lr * 2.54 + 1.27, 2.54)
 
     # --- Calcular largura dinâmica baseada nos nomes dos pinos ---
     body_w_fixed = max(10.16, max_tb * 2.54 + 5.08) if max_tb else 10.16
@@ -603,7 +620,7 @@ def _sym_castellated(dados: dict) -> str:
     name_w_left  = _max_pin_name_len(pn, left_pins)
     name_w_right = _max_pin_name_len(pn, right_pins)
     body_w_names = name_w_left + name_w_right + 2.54
-    body_w = max(body_w_fixed, body_w_names)
+    body_w = _largura_na_grade(max(body_w_fixed, body_w_names))
 
     x_l, x_r = -body_w / 2, body_w / 2
     y_t, y_b  =  body_h / 2, -body_h / 2
@@ -732,7 +749,7 @@ def _sym_bga(dados: dict) -> str:
     name_w_left  = _max_pin_name_len(pn, left_pin_nums) if pn else max(len(s) for s in side_esq) * FONT_SZ * 0.75 if side_esq else 0
     name_w_right = _max_pin_name_len(pn, right_pin_nums) if pn else max(len(s) for s in side_dir) * FONT_SZ * 0.75 if side_dir else 0
     body_w_names = name_w_left + name_w_right + 2.54
-    body_w = max(body_w_fixed, body_w_names)
+    body_w = _largura_na_grade(max(body_w_fixed, body_w_names))
 
     x_l, x_r = -body_w / 2, body_w / 2
     y_t, y_b =  body_h / 2, -body_h / 2
@@ -931,7 +948,7 @@ def _sym_regulador(dados: dict) -> str:
     # --- Calcular largura dinamica baseada nos nomes dos pinos ---
     name_w_left  = _max_pin_name_len(pn, [1])
     name_w_right = _max_pin_name_len(pn, [3])
-    bw = max(bw_fixed, name_w_left + name_w_right + 2.54)
+    bw = _largura_na_grade(max(bw_fixed, name_w_left + name_w_right + 2.54))
 
     x_l, x_r = -bw / 2, bw / 2
     y_t, y_b =  bh / 2, -bh / 2
