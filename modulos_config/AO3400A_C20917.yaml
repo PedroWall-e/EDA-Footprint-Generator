@@ -1,0 +1,38 @@
+nome: AO3400A_C20917
+padrao: custom
+corpo:
+  largura: 3.0
+  comprimento: 2.55
+pads:
+- numero: 1
+  x: 1.0
+  y: -0.95
+  largura: 1.0
+  altura: 0.65
+  formato: retangulo
+  montagem: smd
+  nome: G
+- numero: 2
+  x: 1.0
+  y: 0.95
+  largura: 1.0
+  altura: 0.65
+  formato: retangulo
+  montagem: smd
+  nome: S
+- numero: 3
+  x: -1.0
+  y: -0.0
+  largura: 1.0
+  altura: 0.65
+  formato: retangulo
+  montagem: smd
+  nome: D
+kicad:
+  descricao: AO3400A
+  tags: lcsc C20917
+  datasheet: https://www.lcsc.com/product-detail/C20917.html
+pin_names:
+  '3': D
+  '1': G
+  '2': S

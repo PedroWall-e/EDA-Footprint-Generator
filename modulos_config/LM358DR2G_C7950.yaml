@@ -1,0 +1,83 @@
+nome: LM358DR2G_C7950
+padrao: custom
+corpo:
+  largura: 4.378
+  comprimento: 7.36
+pads:
+- numero: 1
+  x: -1.905
+  y: -2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 1OUT
+- numero: 2
+  x: -0.635
+  y: -2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 1IN-
+- numero: 3
+  x: 0.635
+  y: -2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 1IN+
+- numero: 4
+  x: 1.905
+  y: -2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: GND
+- numero: 8
+  x: -1.905
+  y: 2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: VCC
+- numero: 7
+  x: -0.635
+  y: 2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 2OUT
+- numero: 6
+  x: 0.635
+  y: 2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 2IN-
+- numero: 5
+  x: 1.905
+  y: 2.7051
+  largura: 0.5684
+  altura: 1.9502
+  formato: oval
+  montagem: smd
+  nome: 2IN+
+kicad:
+  descricao: LM358DR2G
+  tags: lcsc C7950
+  datasheet: https://www.lcsc.com/product-detail/C7950.html
+pin_names:
+  '1': 1OUT
+  '2': 1IN-
+  '3': 1IN+
+  '4': GND
+  '5': 2IN+
+  '6': 2IN-
+  '7': 2OUT
+  '8': VCC

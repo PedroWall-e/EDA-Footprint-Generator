@@ -1,0 +1,29 @@
+nome: SS34_C8678
+padrao: custom
+corpo:
+  largura: 6.4
+  comprimento: 2.0
+pads:
+- numero: 2
+  x: 2.1999
+  y: -0.0
+  largura: 2.0
+  altura: 2.0
+  formato: retangulo
+  montagem: smd
+  nome: A
+- numero: 1
+  x: -2.1999
+  y: -0.0
+  largura: 2.0
+  altura: 2.0
+  formato: retangulo
+  montagem: smd
+  nome: K
+kicad:
+  descricao: SS34
+  tags: lcsc C8678
+  datasheet: https://www.lcsc.com/product-detail/C8678.html
+pin_names:
+  '2': A
+  '1': K

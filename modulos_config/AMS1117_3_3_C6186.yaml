@@ -1,0 +1,47 @@
+nome: AMS1117_3_3_C6186
+padrao: custom
+corpo:
+  largura: 8.36
+  comprimento: 5.7
+pads:
+- numero: 1
+  x: 2.9699
+  y: -2.3
+  largura: 2.5
+  altura: 1.1
+  formato: retangulo
+  montagem: smd
+  nome: GND
+- numero: 2
+  x: 2.9699
+  y: -0.0
+  largura: 2.5
+  altura: 1.1
+  formato: retangulo
+  montagem: smd
+  nome: VOUT
+- numero: 3
+  x: 2.9699
+  y: 2.3
+  largura: 2.5
+  altura: 1.1
+  formato: retangulo
+  montagem: smd
+  nome: VIN
+- numero: 4
+  x: -2.97
+  y: -0.0
+  largura: 2.34
+  altura: 3.6
+  formato: retangulo
+  montagem: smd
+  nome: VOUT
+kicad:
+  descricao: AMS1117-3.3
+  tags: lcsc C6186
+  datasheet: https://www.lcsc.com/product-detail/C6186.html
+pin_names:
+  '1': GND
+  '2': VOUT
+  '3': VIN
+  '4': VOUT

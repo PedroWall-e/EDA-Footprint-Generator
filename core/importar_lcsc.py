@@ -180,7 +180,12 @@ def parse_pads(result):
 def _nome_seguro(titulo, codigo):
     """Identificador de arquivo/símbolo a partir do título do componente."""
     base = re.sub(r'[^A-Za-z0-9]+', '_', (titulo or '').strip()).strip('_')
-    return f"{base}_{codigo}" if base else codigo
+    if not base:
+        return codigo
+    # não duplica o código quando o título já o contém (ex.: 'SS34(C8678)')
+    if re.search(rf'(^|_){re.escape(codigo)}($|_)', base, re.IGNORECASE):
+        return base
+    return f"{base}_{codigo}"
 
 
 def montar_yaml(result, codigo):
