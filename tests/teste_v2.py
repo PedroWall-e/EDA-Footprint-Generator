@@ -2072,6 +2072,71 @@ def test_grupo21():
     teste("pinos do símbolo caem na grade de 50 mil (regressão)",
           t_pinos_na_grade_do_esquematico)
 
+    def t_importar_lcsc_parser():
+        """Importador LCSC/EasyEDA: parseia pinos e pads e gera YAML conferível.
+
+        Offline: usa um `result` no formato real do EasyEDA (validado contra o
+        NE555/C7593). Cobre número→nome, conversão de unidades (10 mil → mm) com
+        Y negado, pad girado (troca L↔A), e pad THT com furo.
+        """
+        from importar_lcsc import montar_yaml, buscar_lcsc
+        result = {
+            'title': 'TEST_PART', 'description': 'peça de teste',
+            'dataStr': {'head': {'x': '400', 'y': '300'}, 'shape': [
+                'P~show~0~1~390~300~0~gge1~0^^390~300^^path'
+                '^^1~393~312~270~VCC~end~~6.5pt~#FF0000'
+                '^^1~387~294~270~1~start~~6.5pt~#FF0000',
+                'P~show~0~2~390~290~0~gge2~0^^390~290^^path'
+                '^^1~393~302~270~GND~end~~6.5pt~#FF0000'
+                '^^1~387~284~270~2~start~~6.5pt~#FF0000',
+            ]},
+            'packageDetail': {'dataStr': {'head': {'x': '4000', 'y': '3000'},
+                                          'shape': [
+                # pad 1 SMD retangular na origem
+                'PAD~RECT~4000~3000~4~4~1~~1~0~pts~0~gge1~0~~Y~0~0~0.2~4000,3000',
+                # pad 2 THT elíptico com furo (layer 11, hole_radius=2)
+                'PAD~ELLIPSE~4020~3000~6~6~11~~2~2~pts~0~gge2~0~~Y~0~0~0.2~4020,3000',
+                # pad 3 retangular girado 90° (4x2 -> vira 2x4)
+                'PAD~RECT~4000~3020~4~2~1~~3~0~pts~90~gge3~0~~Y~0~0~0.2~4000,3020',
+            ]}},
+        }
+        dados = montar_yaml(result, 'C0001')
+        pads = {p['numero']: p for p in dados['pads']}
+        assert set(pads) == {1, 2, 3}, f"números de pad errados: {list(pads)}"
+        # número é inteiro (o schema exige)
+        assert all(isinstance(n, int) for n in pads), "numero deveria ser int"
+        # nome veio do símbolo
+        assert pads[1]['nome'] == 'VCC' and pads[2]['nome'] == 'GND'
+        # conversão: pad 2 em x = (4020-4000)*10*0.0254 = 5.08 mm
+        assert abs(pads[2]['x'] - 5.08) < 1e-3, pads[2]['x']
+        # pad THT tem furo e montagem pth
+        assert pads[2]['montagem'] == 'pth' and pads[2].get('furo', 0) > 0
+        # pad girado 90°: 4x2 unidades = 1.016x0.508 mm, girado vira 0.508x1.016
+        assert abs(pads[3]['largura'] - 0.508) < 1e-3 \
+            and abs(pads[3]['altura'] - 1.016) < 1e-3, pads[3]
+        # Y negado (convenção KiCad): pad 3 em EE y=3020 (abaixo) -> y negativo
+        assert pads[3]['y'] < 0, pads[3]['y']
+
+        # o YAML gera e confere sem colisão, símbolo casa com footprint
+        from conferir_footprint import conferir_simbolo, ler_pads, colisoes
+        mod = os.path.join(saida_dir, 'IMP.kicad_mod')
+        sym = os.path.join(saida_dir, 'IMP.kicad_sym')
+        dados['nome'] = 'IMP'
+        gerar_footprint_universal(dados, mod)
+        gerar_symbol(dados, sym)
+        assert colisoes(ler_pads(mod)) == [], "importado saiu com pads em curto"
+        r = conferir_simbolo(mod, sym)
+        assert not r['pinos_sem_pad'], f"símbolo não casa: {r['pinos_sem_pad']}"
+
+        # código inválido é rejeitado sem tocar a rede
+        try:
+            buscar_lcsc('banana')
+            assert False, "código inválido deveria dar erro"
+        except ValueError:
+            pass
+    teste("importador LCSC/EasyEDA parseia e gera YAML conferível",
+          t_importar_lcsc_parser)
+
     def t_folga_nominal_nao_falsa_alarma():
         """Vão de exatamente 0,2 mm não pode virar aviso '< 0.20mm'.
 

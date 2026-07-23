@@ -579,6 +579,53 @@ def cmd_conferir(args):
 # Subcomando: schema
 # =============================================================================
 
+def cmd_importar(args):
+    """Importa um componente do LCSC/EasyEDA e escreve o YAML do nosso formato.
+
+    Não copia o desenho do símbolo do EasyEDA: extrai os dados (número, nome e
+    posição de cada pino/pad) e emite `padrao: custom`, para o nosso gerador
+    produzir símbolo + footprint nativos e conferíveis.
+    """
+    import yaml
+    from importar_lcsc import importar
+
+    try:
+        with _stdout_limpo(args):
+            dados = importar(args.codigo)
+    except ValueError as e:
+        if args.json:
+            print(json.dumps({"ok": False, "erros": [str(e)]}, ensure_ascii=False))
+        else:
+            print(f"❌ {e}")
+        return 1
+    except Exception as e:   # rede, timeout
+        msg = f"falha ao acessar o EasyEDA: {e}"
+        if args.json:
+            print(json.dumps({"ok": False, "erros": [msg]}, ensure_ascii=False))
+        else:
+            print(f"❌ {msg}")
+        return 1
+
+    nome = dados['nome']
+    os.makedirs(args.saida, exist_ok=True)
+    yaml_path = os.path.join(args.saida, f"{nome}.yaml")
+    with open(yaml_path, 'w', encoding='utf-8') as f:
+        yaml.safe_dump(dados, f, allow_unicode=True, sort_keys=False)
+
+    aviso = ("tipo elétrico dos pinos não vem do EasyEDA — revise se precisar; "
+             "o contorno do corpo é aproximado pela caixa dos pads")
+    if args.json:
+        print(json.dumps({"ok": True, "nome": nome, "yaml": yaml_path,
+                          "pads": len(dados['pads']), "aviso": aviso},
+                         ensure_ascii=False, indent=2))
+    else:
+        print(f"✅ {args.codigo} → {yaml_path} ({len(dados['pads'])} pads)")
+        print(f"  ⚠️  {aviso}")
+        print(f"  Próximo: python cli.py gerar {yaml_path} -o saida/")
+        print(f"           python cli.py conferir saida/{nome}.kicad_mod")
+    return 0
+
+
 def cmd_schema(args):
     """Imprime o JSON Schema do componente."""
     schema_path = os.path.join(PROJ_DIR, 'schemas', 'component.schema.json')
@@ -625,6 +672,14 @@ def main():
                            help='.kicad_mod já gerado deste YAML: roda o DRC '
                                 'sobre a geometria real e confere o modelo 3D')
     p_validar.set_defaults(func=cmd_validar)
+
+    # importar (LCSC/EasyEDA → YAML)
+    p_imp = sub.add_parser('importar',
+                           help='Importar componente do LCSC/EasyEDA para YAML')
+    p_imp.add_argument('codigo', help='Código LCSC (ex.: C7593)')
+    p_imp.add_argument('-o', '--saida', default='modulos_config',
+                       help='Pasta onde escrever o YAML (default: modulos_config)')
+    p_imp.set_defaults(func=cmd_importar)
 
     # padroes
     p_padroes = sub.add_parser('padroes', help='Listar padrões de footprint')

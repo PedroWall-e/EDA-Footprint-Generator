@@ -44,7 +44,7 @@ Footprint mistakes become **manufacturing mistakes**. So every generation is che
 - **IPC-7351B validation** — pad-to-pad clearance, courtyard excess, annular ring, silkscreen-to-pad. Errors **abort** generation; warnings are surfaced. ([`core/validador_ipc.py`](core/validador_ipc.py))
 - **JSON Schema** — the component structure is validated against a formal schema. ([`schemas/component.schema.json`](schemas/component.schema.json))
 - **DRC** — configurable design-rule checks. `verificar_drc()` runs 8 rules from the YAML spec (estimate); `verificar_drc_arquivo()` measures the **generated** `.kicad_mod` — silkscreen-over-pad and pad overlap on real geometry — plus 3D-model existence. ([`core/verificador_drc.py`](core/verificador_drc.py))
-- **CI** — 127 automated tests run on **Windows + Linux** across **Python 3.10 / 3.11 / 3.12** on every push.
+- **CI** — 167 automated tests run on **Windows + Linux** across **Python 3.10 / 3.11 / 3.12** on every push.
 
 ---
 
@@ -85,6 +85,9 @@ python cli.py validar modulos_config/NE555_DIP8.yaml
 
 # Generate an entire folder
 python cli.py batch modulos_config/ -o saida/
+
+# Import a part from LCSC/EasyEDA into a native (verifiable) YAML
+python cli.py importar C7593 -o modulos_config/   # NE555, by LCSC code
 
 # JSON output (for scripts / AI agents)
 python cli.py --json gerar modulos_config/NE555_DIP8.yaml -o saida/
